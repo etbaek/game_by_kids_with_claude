@@ -89,6 +89,46 @@
             font-size: 0.9rem;
         }
 
+        /* 모바일 컨트롤 */
+        .controls {
+            display: none;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 55px;
+            font-size: 1.3rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            user-select: none;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .left-btn, .right-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .jump-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            width: 100px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        @media (max-width: 450px) {
+            .controls { display: flex; }
+            .instructions { display: none; }
+        }
+
         .back-btn {
             position: fixed;
             top: 20px;
@@ -176,6 +216,12 @@
         <canvas id="gameCanvas" width="500" height="700"></canvas>
         <p class="instructions">⬅️➡️ 이동 | ⬆️ 또는 스페이스바 점프 | 장애물을 피해 계단을 올라가세요!</p>
 
+        <div class="controls">
+            <button class="control-btn left-btn" id="leftBtn">⬅️</button>
+            <button class="control-btn jump-btn" id="jumpBtn">⬆️ 점프</button>
+            <button class="control-btn right-btn" id="rightBtn">➡️</button>
+        </div>
+
         <div class="game-over" id="gameOver">
             <h2>추락! 💀</h2>
             <p>도달한 층:</p>
@@ -242,6 +288,46 @@
             if (e.key === 'ArrowUp') keys.ArrowUp = false;
             if (e.key === ' ') keys.Space = false;
         });
+
+        // 모바일 터치 컨트롤
+        function setupTouchButton(btnId, key) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+
+            btn.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+
+            // 마우스도 지원
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+
+            btn.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+
+            btn.addEventListener('mouseleave', (e) => {
+                keys[key] = false;
+            });
+        }
+
+        setupTouchButton('leftBtn', 'ArrowLeft');
+        setupTouchButton('rightBtn', 'ArrowRight');
+        setupTouchButton('jumpBtn', 'ArrowUp');
 
         // 초기 계단 생성
         function initStairs() {

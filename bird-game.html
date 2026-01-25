@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>새 게임 - Bird Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .game-container {
+            text-align: center;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .feathers .stat-value {
+            color: #ffd700;
+        }
+
+        .score .stat-value {
+            color: #00ff88;
+        }
+
+        canvas {
+            border: 3px solid #4a4a6a;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .game-over h2 {
+            color: #ff4444;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .game-over p {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .restart-btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .restart-btn:hover {
+            background: #00cc6a;
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            color: #888;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+    <div class="game-container">
+        <h1>🐦 새 게임</h1>
+        <div class="stats">
+            <div class="stat feathers">
+                <div class="stat-label">깃털</div>
+                <div class="stat-value" id="feathers">30</div>
+            </div>
+            <div class="stat score">
+                <div class="stat-label">점수</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <p class="instructions">⬆️⬇️⬅️➡️ 방향키 또는 🖱️ 마우스로 새를 움직이세요!</p>
+        <p class="instructions" style="margin-top: 5px;">💛 노란 씨앗 = 점수 +10 | 💖 분홍 하트 = 깃털 +1</p>
+
+        <div class="game-over" id="gameOver">
+            <h2>게임 오버!</h2>
+            <p>최종 점수: <span id="finalScore">0</span></p>
+            <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태
+        let gameRunning = true;
+        let feathers = 30;
+        let score = 0;
+
+        // 새 (플레이어)
+        const bird = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            width: 40,
+            height: 40,
+            speed: 5,
+            dx: 0,
+            dy: 0
+        };
+
+        // 먹이 배열
+        let foods = [];
+
+        // 장애물 배열
+        let obstacles = [];
+
+        // 키 상태
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        // 마우스 상태
+        let mouseTarget = null;
+        let useMouseControl = false;
+
+        // 키 이벤트
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+                useMouseControl = false;
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+
+        // 마우스 이벤트
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseTarget = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+            useMouseControl = true;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            useMouseControl = false;
+        });
+
+        // 먹이 생성 - 두 종류
+        function spawnFood() {
+            if (foods.length < 6) {
+                // 50% 확률로 점수 먹이 또는 깃털 먹이
+                const isScoreFood = Math.random() > 0.5;
+
+                foods.push({
+                    x: Math.random() * (canvas.width - 30) + 15,
+                    y: Math.random() * (canvas.height - 30) + 15,
+                    radius: 12,
+                    type: isScoreFood ? 'score' : 'feather',
+                    color: isScoreFood ? '#FFD700' : '#FF69B4'
+                });
+            }
+        }
+
+        // 장애물 생성
+        function spawnObstacle() {
+            if (obstacles.length < 8) {
+                const side = Math.floor(Math.random() * 4);
+                let x, y, dx, dy;
+
+                switch(side) {
+                    case 0: // 위에서
+                        x = Math.random() * canvas.width;
+                        y = -30;
+                        dx = (Math.random() - 0.5) * 2;
+                        dy = Math.random() * 2 + 1;
+                        break;
+                    case 1: // 아래에서
+                        x = Math.random() * canvas.width;
+                        y = canvas.height + 30;
+                        dx = (Math.random() - 0.5) * 2;
+                        dy = -(Math.random() * 2 + 1);
+                        break;
+                    case 2: // 왼쪽에서
+                        x = -30;
+                        y = Math.random() * canvas.height;
+                        dx = Math.random() * 2 + 1;
+                        dy = (Math.random() - 0.5) * 2;
+                        break;
+                    case 3: // 오른쪽에서
+                        x = canvas.width + 30;
+                        y = Math.random() * canvas.height;
+                        dx = -(Math.random() * 2 + 1);
+                        dy = (Math.random() - 0.5) * 2;
+                        break;
+                }
+
+                obstacles.push({
+                    x: x,
+                    y: y,
+                    width: 35,
+                    height: 35,
+                    dx: dx,
+                    dy: dy
+                });
+            }
+        }
+
+        // 충돌 감지
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function checkCircleCollision(rect, circle) {
+            const closestX = Math.max(rect.x, Math.min(circle.x, rect.x + rect.width));
+            const closestY = Math.max(rect.y, Math.min(circle.y, rect.y + rect.height));
+            const distanceX = circle.x - closestX;
+            const distanceY = circle.y - closestY;
+            return (distanceX * distanceX + distanceY * distanceY) < (circle.radius * circle.radius);
+        }
+
+        // 꼬리 깃털 그리기
+        function drawTailFeathers() {
+            ctx.save();
+            // 새의 꼬리 위치 (몸통 왼쪽 끝)
+            ctx.translate(bird.x + bird.width / 2 - 18, bird.y + bird.height / 2);
+
+            const maxFeathers = 30;
+            const currentFeathers = feathers;
+
+            // 깃털을 부채꼴로 배치 (위아래로 펼침, 왼쪽 방향)
+            const spreadAngle = Math.PI * 0.6; // 위아래 펼침 각도
+            const startAngle = -spreadAngle / 2; // 위쪽부터 시작
+
+            for (let i = 0; i < currentFeathers; i++) {
+                // 위에서 아래로 순서대로 배치
+                const angle = startAngle + (spreadAngle * i) / (maxFeathers - 1);
+
+                // 가운데 깃털이 더 길고, 위아래는 짧게
+                const distFromCenter = Math.abs(i - (maxFeathers - 1) / 2);
+                const featherLength = 35 - distFromCenter * 0.8;
+
+                // 색상 그라데이션 (노랑 -> 주황 -> 빨강)
+                const hue = 50 - (i / maxFeathers) * 25;
+                const saturation = 95;
+                const lightness = 55 + (i % 3) * 3;
+
+                ctx.save();
+                ctx.rotate(angle);
+
+                // 깃털을 왼쪽(-x)으로 그림
+                const startX = 0;
+                const endX = -featherLength;
+
+                // 깃털 줄기
+                ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness - 20}%)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(startX, 0);
+                ctx.lineTo(endX, 0);
+                ctx.stroke();
+
+                // 깃털 본체 (타원형)
+                ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                ctx.beginPath();
+                ctx.ellipse(endX / 2, 0, featherLength / 2, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 깃털 하이라이트
+                ctx.fillStyle = `hsla(60, 100%, 85%, 0.5)`;
+                ctx.beginPath();
+                ctx.ellipse(endX / 2 - 3, -1, featherLength / 4, 1.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // 새 그리기
+        function drawBird() {
+            // 먼저 꼬리 깃털 그리기 (새 몸통 뒤에)
+            drawTailFeathers();
+
+            ctx.save();
+            ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+
+            // 몸통
+            ctx.fillStyle = '#FFD93D';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 20, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 날개
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath();
+            ctx.ellipse(-5, 5, 12, 8, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 머리
+            ctx.fillStyle = '#FFD93D';
+            ctx.beginPath();
+            ctx.arc(15, -5, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(18, -7, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈 반짝임
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(19, -8, 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 부리
+            ctx.fillStyle = '#FF6B35';
+            ctx.beginPath();
+            ctx.moveTo(25, -5);
+            ctx.lineTo(32, -3);
+            ctx.lineTo(25, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 먹이 그리기
+        function drawFoods() {
+            foods.forEach(food => {
+                if (food.type === 'score') {
+                    // 노란 씨앗 (점수)
+                    ctx.fillStyle = food.color;
+                    ctx.beginPath();
+                    ctx.arc(food.x, food.y, food.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 반짝임
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(food.x - 4, food.y - 4, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // 분홍 하트 (깃털 회복)
+                    ctx.fillStyle = food.color;
+                    ctx.beginPath();
+                    const x = food.x;
+                    const y = food.y;
+                    const size = food.radius;
+                    ctx.moveTo(x, y + size / 4);
+                    ctx.bezierCurveTo(x, y - size / 2, x - size, y - size / 2, x - size, y + size / 4);
+                    ctx.bezierCurveTo(x - size, y + size, x, y + size * 1.2, x, y + size * 1.2);
+                    ctx.bezierCurveTo(x, y + size * 1.2, x + size, y + size, x + size, y + size / 4);
+                    ctx.bezierCurveTo(x + size, y - size / 2, x, y - size / 2, x, y + size / 4);
+                    ctx.fill();
+
+                    // 하트 반짝임
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(x - 5, y - 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        // 장애물 그리기
+        function drawObstacles() {
+            obstacles.forEach(obs => {
+                // 바위 모양
+                ctx.fillStyle = '#555';
+                ctx.beginPath();
+                ctx.moveTo(obs.x + obs.width / 2, obs.y);
+                ctx.lineTo(obs.x + obs.width, obs.y + obs.height * 0.7);
+                ctx.lineTo(obs.x + obs.width * 0.8, obs.y + obs.height);
+                ctx.lineTo(obs.x + obs.width * 0.2, obs.y + obs.height);
+                ctx.lineTo(obs.x, obs.y + obs.height * 0.6);
+                ctx.closePath();
+                ctx.fill();
+
+                // 하이라이트
+                ctx.fillStyle = '#777';
+                ctx.beginPath();
+                ctx.moveTo(obs.x + obs.width / 2, obs.y + 5);
+                ctx.lineTo(obs.x + obs.width * 0.7, obs.y + obs.height * 0.5);
+                ctx.lineTo(obs.x + obs.width / 2, obs.y + obs.height * 0.6);
+                ctx.lineTo(obs.x + obs.width * 0.3, obs.y + obs.height * 0.4);
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
+
+        // 깃털 이펙트
+        let fallingFeathers = [];
+
+        function createFeatherEffect(x, y) {
+            // 꼬리 쪽에서 깃털이 빠지는 효과 (왼쪽에서)
+            for (let i = 0; i < 3; i++) {
+                const hue = 40 + Math.random() * 15;
+                fallingFeathers.push({
+                    x: x - 20 - Math.random() * 15,
+                    y: y + (Math.random() - 0.5) * 20,
+                    dx: -Math.random() * 2 - 1,
+                    dy: Math.random() * -2,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.3,
+                    alpha: 1,
+                    length: 12 + Math.random() * 8,
+                    color: `hsl(${hue}, 95%, 55%)`
+                });
+            }
+        }
+
+        function drawFallingFeathers() {
+            fallingFeathers.forEach((f, index) => {
+                ctx.save();
+                ctx.translate(f.x, f.y);
+                ctx.rotate(f.rotation);
+                ctx.globalAlpha = f.alpha;
+
+                // 깃털 줄기
+                ctx.strokeStyle = f.color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-f.length / 2, 0);
+                ctx.lineTo(f.length / 2, 0);
+                ctx.stroke();
+
+                // 깃털 본체
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, f.length / 2, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 하이라이트
+                ctx.fillStyle = 'rgba(255, 255, 200, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(-2, -1, f.length / 4, 1.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+
+                // 물리 업데이트 (흔들리며 떨어짐)
+                f.x += f.dx;
+                f.y += f.dy;
+                f.dy += 0.08;
+                f.dx += Math.sin(f.rotation) * 0.1;
+                f.rotation += f.rotationSpeed;
+                f.alpha -= 0.015;
+
+                if (f.alpha <= 0) {
+                    fallingFeathers.splice(index, 1);
+                }
+            });
+        }
+
+        // 업데이트
+        function update() {
+            if (!gameRunning) return;
+
+            // 마우스 조작
+            if (useMouseControl && mouseTarget) {
+                const centerX = bird.x + bird.width / 2;
+                const centerY = bird.y + bird.height / 2;
+                const dx = mouseTarget.x - centerX;
+                const dy = mouseTarget.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 5) {
+                    bird.x += (dx / distance) * bird.speed;
+                    bird.y += (dy / distance) * bird.speed;
+                }
+            }
+
+            // 키보드 조작
+            if (keys.ArrowUp) bird.y -= bird.speed;
+            if (keys.ArrowDown) bird.y += bird.speed;
+            if (keys.ArrowLeft) bird.x -= bird.speed;
+            if (keys.ArrowRight) bird.x += bird.speed;
+
+            // 경계 체크
+            bird.x = Math.max(0, Math.min(canvas.width - bird.width, bird.x));
+            bird.y = Math.max(0, Math.min(canvas.height - bird.height, bird.y));
+
+            // 장애물 이동
+            obstacles.forEach((obs, index) => {
+                obs.x += obs.dx;
+                obs.y += obs.dy;
+
+                // 화면 밖으로 나가면 제거
+                if (obs.x < -50 || obs.x > canvas.width + 50 ||
+                    obs.y < -50 || obs.y > canvas.height + 50) {
+                    obstacles.splice(index, 1);
+                }
+            });
+
+            // 먹이 충돌
+            foods.forEach((food, index) => {
+                if (checkCircleCollision(bird, food)) {
+                    foods.splice(index, 1);
+
+                    if (food.type === 'score') {
+                        // 점수 먹이: 점수만 획득
+                        score += 10;
+                    } else {
+                        // 깃털 먹이: 깃털만 회복
+                        if (feathers < 30) feathers++;
+                    }
+                    updateUI();
+                }
+            });
+
+            // 장애물 충돌
+            obstacles.forEach((obs, index) => {
+                if (checkCollision(bird, obs)) {
+                    obstacles.splice(index, 1);
+                    feathers--;
+                    createFeatherEffect(bird.x + bird.width / 2, bird.y + bird.height / 2);
+                    updateUI();
+
+                    if (feathers <= 0) {
+                        gameOver();
+                    }
+                }
+            });
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('feathers').textContent = feathers;
+            document.getElementById('score').textContent = score;
+        }
+
+        // 게임 오버
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            gameRunning = true;
+            feathers = 30;
+            score = 0;
+            bird.x = canvas.width / 2;
+            bird.y = canvas.height / 2;
+            foods = [];
+            obstacles = [];
+            fallingFeathers = [];
+            mouseTarget = null;
+            useMouseControl = false;
+            document.getElementById('gameOver').style.display = 'none';
+            updateUI();
+        }
+
+        // 그리기
+        function draw() {
+            // 배경
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 구름
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(100, 80, 30, 0, Math.PI * 2);
+            ctx.arc(130, 70, 35, 0, Math.PI * 2);
+            ctx.arc(160, 80, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(600, 120, 25, 0, Math.PI * 2);
+            ctx.arc(625, 110, 30, 0, Math.PI * 2);
+            ctx.arc(655, 115, 28, 0, Math.PI * 2);
+            ctx.fill();
+
+            drawFoods();
+            drawObstacles();
+            drawBird();
+            drawFallingFeathers();
+        }
+
+        // 게임 루프
+        let lastFoodSpawn = 0;
+        let lastObstacleSpawn = 0;
+
+        function gameLoop(timestamp) {
+            update();
+            draw();
+
+            // 먹이 생성 (2초마다)
+            if (timestamp - lastFoodSpawn > 2000) {
+                spawnFood();
+                lastFoodSpawn = timestamp;
+            }
+
+            // 장애물 생성 (1.5초마다)
+            if (timestamp - lastObstacleSpawn > 1500) {
+                spawnObstacle();
+                lastObstacleSpawn = timestamp;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 초기 먹이 생성
+        for (let i = 0; i < 3; i++) {
+            spawnFood();
+        }
+
+        // 게임 시작
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스키 게임 - Ski Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .distance .stat-value { color: #00ff88; }
+        .speed .stat-value { color: #ffaa00; }
+        .best .stat-value { color: #ffd700; }
+
+        canvas {
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(100, 200, 255, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            width: 90px;
+            height: 60px;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+            color: #fff;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .left-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .right-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .instructions {
+            color: #888;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .game-over, .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .game-over {
+            border: 2px solid #ff4444;
+            display: none;
+        }
+
+        .start-screen {
+            border: 2px solid #00aaff;
+        }
+
+        .game-over h2 { color: #ff4444; }
+        .start-screen h2 { color: #00aaff; }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .start-screen p, .game-over p {
+            color: #ccc;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .final-distance {
+            color: #00ff88;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00aaff 0%, #0077cc 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+
+    <div class="game-container">
+        <h1>⛷️ 스키 게임 ⛷️</h1>
+        <div class="stats">
+            <div class="stat distance">
+                <div class="stat-label">거리</div>
+                <div class="stat-value" id="distance">0m</div>
+            </div>
+            <div class="stat speed">
+                <div class="stat-label">속도</div>
+                <div class="stat-value" id="speed">0</div>
+            </div>
+            <div class="stat best">
+                <div class="stat-label">최고기록</div>
+                <div class="stat-value" id="best">0m</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="550"></canvas>
+
+        <div class="controls">
+            <button class="control-btn left-btn" id="leftBtn">⬅️</button>
+            <button class="control-btn right-btn" id="rightBtn">➡️</button>
+        </div>
+
+        <p class="instructions">⬅️ ➡️ 로 이동 | 🌲🪨 피하기 | ⭐ +50점 | ❄️ 속도 감소!</p>
+
+        <div class="start-screen" id="startScreen">
+            <h2>⛷️ 스키 게임</h2>
+            <p>
+                눈 덮인 슬로프를 내려가요!<br><br>
+                🌲 나무를 피하세요!<br>
+                🪨 바위를 피하세요!<br>
+                ⭐ 별을 모으면 +50점!<br>
+                ❄️ 눈결정은 속도 감소!<br><br>
+                속도가 점점 빨라져요!
+            </p>
+            <button class="btn" onclick="startGame()">게임 시작</button>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h2>💥 충돌!</h2>
+            <p>이동 거리</p>
+            <div class="final-distance" id="finalDistance">0m</div>
+            <p>최고 기록: <span id="bestRecord">0m</span></p>
+            <button class="btn" onclick="restartGame()">다시 도전</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태
+        let gameRunning = false;
+        let distance = 0;
+        let speed = 5;
+        let bestScore = parseInt(localStorage.getItem('skiBest') || '0');
+
+        // 플레이어
+        const player = {
+            x: canvas.width / 2,
+            y: 120,
+            width: 30,
+            height: 40,
+            targetX: canvas.width / 2,
+            lean: 0
+        };
+
+        // 장애물 & 아이템
+        let obstacles = [];
+        let stars = [];
+        let slowItems = [];
+        let snowflakes = [];
+        let skiTracks = [];
+        let slowEffect = 0; // 속도 감소 효과 타이머
+
+        // 입력
+        const keys = { left: false, right: false };
+
+        // 눈송이 초기화
+        function initSnowflakes() {
+            snowflakes = [];
+            for (let i = 0; i < 50; i++) {
+                snowflakes.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 1,
+                    speed: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        // 장애물 생성
+        function spawnObstacle() {
+            const type = Math.random() > 0.4 ? 'tree' : 'rock';
+            obstacles.push({
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: canvas.height + 50,
+                type: type,
+                width: type === 'tree' ? 30 : 35,
+                height: type === 'tree' ? 50 : 25
+            });
+        }
+
+        // 별 생성
+        function spawnStar() {
+            stars.push({
+                x: Math.random() * (canvas.width - 30) + 15,
+                y: canvas.height + 30,
+                collected: false,
+                rotation: 0
+            });
+        }
+
+        // 속도 감소 아이템 생성
+        function spawnSlowItem() {
+            slowItems.push({
+                x: Math.random() * (canvas.width - 30) + 15,
+                y: canvas.height + 30,
+                collected: false,
+                rotation: 0,
+                pulse: 0
+            });
+        }
+
+        // 스키 자국 생성
+        function addSkiTrack() {
+            skiTracks.push({
+                x: player.x,
+                y: player.y + player.height,
+                opacity: 0.5
+            });
+            if (skiTracks.length > 50) {
+                skiTracks.shift();
+            }
+        }
+
+        // 플레이어 그리기
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.lean * 0.15);
+
+            // 스키
+            ctx.fillStyle = '#1a5f7a';
+            ctx.beginPath();
+            ctx.ellipse(-8, 35, 4, 18, -0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(8, 35, 4, 18, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 다리
+            ctx.fillStyle = '#2d3436';
+            ctx.fillRect(-10, 15, 7, 20);
+            ctx.fillRect(3, 15, 7, 20);
+
+            // 몸통 (패딩 점퍼)
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 12, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 점퍼 줄무늬
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(-10, 0, 20, 4);
+
+            // 머리
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(0, -12, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 헬멧
+            ctx.fillStyle = '#0984e3';
+            ctx.beginPath();
+            ctx.arc(0, -14, 10, Math.PI, 0);
+            ctx.fill();
+
+            // 고글
+            ctx.fillStyle = '#2d3436';
+            ctx.fillRect(-8, -14, 16, 5);
+            ctx.fillStyle = '#74b9ff';
+            ctx.fillRect(-7, -13, 6, 3);
+            ctx.fillRect(1, -13, 6, 3);
+
+            // 스키 폴
+            ctx.strokeStyle = '#636e72';
+            ctx.lineWidth = 2;
+            // 왼쪽 폴
+            ctx.beginPath();
+            ctx.moveTo(-15, 5);
+            ctx.lineTo(-25, 40);
+            ctx.stroke();
+            // 오른쪽 폴
+            ctx.beginPath();
+            ctx.moveTo(15, 5);
+            ctx.lineTo(25, 40);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // 나무 그리기
+        function drawTree(x, y) {
+            // 그림자
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(x, y + 5, 20, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 나무 줄기
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(x - 5, y - 15, 10, 20);
+
+            // 나뭇잎 (3단)
+            ctx.fillStyle = '#2e7d32';
+            ctx.beginPath();
+            ctx.moveTo(x, y - 55);
+            ctx.lineTo(x - 18, y - 25);
+            ctx.lineTo(x + 18, y - 25);
+            ctx.fill();
+
+            ctx.fillStyle = '#388e3c';
+            ctx.beginPath();
+            ctx.moveTo(x, y - 45);
+            ctx.lineTo(x - 22, y - 15);
+            ctx.lineTo(x + 22, y - 15);
+            ctx.fill();
+
+            ctx.fillStyle = '#43a047';
+            ctx.beginPath();
+            ctx.moveTo(x, y - 35);
+            ctx.lineTo(x - 25, y - 5);
+            ctx.lineTo(x + 25, y - 5);
+            ctx.fill();
+
+            // 눈
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(x - 10, y - 40, 5, 3, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(x + 8, y - 30, 6, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 바위 그리기
+        function drawRock(x, y) {
+            // 그림자
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(x, y + 5, 22, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 바위
+            ctx.fillStyle = '#636e72';
+            ctx.beginPath();
+            ctx.moveTo(x - 18, y);
+            ctx.lineTo(x - 12, y - 18);
+            ctx.lineTo(x + 5, y - 22);
+            ctx.lineTo(x + 18, y - 10);
+            ctx.lineTo(x + 15, y);
+            ctx.closePath();
+            ctx.fill();
+
+            // 하이라이트
+            ctx.fillStyle = '#b2bec3';
+            ctx.beginPath();
+            ctx.moveTo(x - 5, y - 18);
+            ctx.lineTo(x + 3, y - 20);
+            ctx.lineTo(x + 8, y - 12);
+            ctx.lineTo(x - 2, y - 10);
+            ctx.closePath();
+            ctx.fill();
+
+            // 눈
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(x, y - 15, 8, 4, 0, 0, Math.PI);
+            ctx.fill();
+        }
+
+        // 별 그리기
+        function drawStar(star) {
+            ctx.save();
+            ctx.translate(star.x, star.y);
+            ctx.rotate(star.rotation);
+
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                const x = Math.cos(angle) * 12;
+                const y = Math.sin(angle) * 12;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // 반짝임
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(-3, -3, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 속도 감소 아이템 그리기
+        function drawSlowItem(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.rotate(item.rotation);
+
+            const pulse = 1 + Math.sin(item.pulse) * 0.15;
+            ctx.scale(pulse, pulse);
+
+            // 바깥 원 (파란 글로우)
+            ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈결정 그리기
+            ctx.strokeStyle = '#00bfff';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // 6개의 가지
+            for (let i = 0; i < 6; i++) {
+                ctx.save();
+                ctx.rotate((i * Math.PI) / 3);
+
+                // 메인 가지
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -14);
+                ctx.stroke();
+
+                // 작은 가지
+                ctx.beginPath();
+                ctx.moveTo(0, -8);
+                ctx.lineTo(-4, -12);
+                ctx.moveTo(0, -8);
+                ctx.lineTo(4, -12);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // 중심 원
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 배경 그리기
+        function drawBackground() {
+            // 하늘
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(0.3, '#B0E0E6');
+            skyGradient.addColorStop(1, '#E0FFFF');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 눈 바닥
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 슬로프 효과 (줄무늬)
+            ctx.strokeStyle = 'rgba(200, 220, 255, 0.5)';
+            ctx.lineWidth = 2;
+            const offset = (Date.now() / 20) % 40;
+            for (let i = -1; i < canvas.height / 40 + 1; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * 40 + offset);
+                ctx.lineTo(canvas.width, i * 40 + offset);
+                ctx.stroke();
+            }
+        }
+
+        // 스키 자국 그리기
+        function drawSkiTracks() {
+            skiTracks.forEach((track, index) => {
+                ctx.strokeStyle = `rgba(200, 210, 220, ${track.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(track.x - 8, track.y);
+                ctx.lineTo(track.x - 8, track.y + 10);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(track.x + 8, track.y);
+                ctx.lineTo(track.x + 8, track.y + 10);
+                ctx.stroke();
+            });
+        }
+
+        // 눈송이 그리기
+        function drawSnowflakes() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            snowflakes.forEach(flake => {
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 업데이트
+        function update() {
+            if (!gameRunning) return;
+
+            // 거리 증가
+            distance += speed / 10;
+
+            // 속도 점점 증가
+            if (distance % 100 < 1) {
+                speed = Math.min(speed + 0.5, 20);
+            }
+
+            // 플레이어 이동
+            if (keys.left) {
+                player.targetX -= 6;
+                player.lean = Math.max(player.lean - 0.3, -1);
+            } else if (keys.right) {
+                player.targetX += 6;
+                player.lean = Math.min(player.lean + 0.3, 1);
+            } else {
+                player.lean *= 0.9;
+            }
+
+            player.targetX = Math.max(20, Math.min(canvas.width - 20, player.targetX));
+            player.x += (player.targetX - player.x) * 0.15;
+
+            // 스키 자국 추가
+            if (Math.random() < 0.3) {
+                addSkiTrack();
+            }
+
+            // 스키 자국 이동
+            skiTracks.forEach(track => {
+                track.y -= speed;
+                track.opacity -= 0.01;
+            });
+            skiTracks = skiTracks.filter(track => track.y > -20 && track.opacity > 0);
+
+            // 장애물 생성
+            if (Math.random() < 0.02 + speed * 0.002) {
+                spawnObstacle();
+            }
+
+            // 별 생성
+            if (Math.random() < 0.008) {
+                spawnStar();
+            }
+
+            // 속도 감소 아이템 생성
+            if (Math.random() < 0.005) {
+                spawnSlowItem();
+            }
+
+            // 속도 감소 효과 처리
+            if (slowEffect > 0) {
+                slowEffect--;
+                if (slowEffect === 0) {
+                    // 효과 끝나면 원래 속도로 (하지만 최소 속도 유지)
+                }
+            }
+
+            // 장애물 이동 및 충돌
+            obstacles.forEach(obs => {
+                obs.y -= speed;
+            });
+            obstacles = obstacles.filter(obs => obs.y > -60);
+
+            // 충돌 체크
+            for (let obs of obstacles) {
+                const obsCenter = { x: obs.x, y: obs.y };
+                const playerCenter = { x: player.x, y: player.y + 20 };
+
+                let hitboxWidth = obs.type === 'tree' ? 15 : 20;
+                let hitboxHeight = obs.type === 'tree' ? 30 : 15;
+
+                if (Math.abs(playerCenter.x - obsCenter.x) < hitboxWidth &&
+                    Math.abs(playerCenter.y - obsCenter.y) < hitboxHeight + 15) {
+                    gameOver();
+                    return;
+                }
+            }
+
+            // 별 이동 및 수집
+            stars.forEach(star => {
+                star.y -= speed;
+                star.rotation += 0.05;
+
+                if (!star.collected) {
+                    const dx = player.x - star.x;
+                    const dy = (player.y + 20) - star.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                        star.collected = true;
+                        distance += 50;
+                    }
+                }
+            });
+            stars = stars.filter(star => star.y > -30 && !star.collected);
+
+            // 속도 감소 아이템 이동 및 수집
+            slowItems.forEach(item => {
+                item.y -= speed;
+                item.rotation += 0.03;
+                item.pulse += 0.15;
+
+                if (!item.collected) {
+                    const dx = player.x - item.x;
+                    const dy = (player.y + 20) - item.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                        item.collected = true;
+                        speed = Math.max(3, speed - 3); // 속도 3 감소 (최소 3)
+                        slowEffect = 180; // 3초간 효과 표시
+                    }
+                }
+            });
+            slowItems = slowItems.filter(item => item.y > -30 && !item.collected);
+
+            // 눈송이 이동
+            snowflakes.forEach(flake => {
+                flake.y -= speed * 0.5 + flake.speed;
+                flake.x += Math.sin(Date.now() / 500 + flake.y) * 0.5;
+
+                if (flake.y < -10) {
+                    flake.y = canvas.height + 10;
+                    flake.x = Math.random() * canvas.width;
+                }
+            });
+
+            updateUI();
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('distance').textContent = Math.floor(distance) + 'm';
+            document.getElementById('speed').textContent = speed.toFixed(1);
+            document.getElementById('best').textContent = bestScore + 'm';
+        }
+
+        // 그리기
+        function draw() {
+            drawBackground();
+            drawSkiTracks();
+
+            // 장애물
+            obstacles.forEach(obs => {
+                if (obs.type === 'tree') {
+                    drawTree(obs.x, obs.y);
+                } else {
+                    drawRock(obs.x, obs.y);
+                }
+            });
+
+            // 별
+            stars.forEach(star => {
+                if (!star.collected) drawStar(star);
+            });
+
+            // 속도 감소 아이템
+            slowItems.forEach(item => {
+                if (!item.collected) drawSlowItem(item);
+            });
+
+            drawPlayer();
+
+            // 속도 감소 효과 표시
+            if (slowEffect > 0) {
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#00bfff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('❄️ 속도 감소! ❄️', canvas.width / 2, 30);
+            }
+            drawSnowflakes();
+        }
+
+        // 게임 오버
+        function gameOver() {
+            gameRunning = false;
+
+            const finalDist = Math.floor(distance);
+            if (finalDist > bestScore) {
+                bestScore = finalDist;
+                localStorage.setItem('skiBest', bestScore.toString());
+            }
+
+            document.getElementById('finalDistance').textContent = finalDist + 'm';
+            document.getElementById('bestRecord').textContent = bestScore + 'm';
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        // 게임 시작
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            resetGame();
+            gameRunning = true;
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            resetGame();
+            gameRunning = true;
+        }
+
+        // 게임 리셋
+        function resetGame() {
+            distance = 0;
+            speed = 5;
+            player.x = canvas.width / 2;
+            player.targetX = canvas.width / 2;
+            player.lean = 0;
+            obstacles = [];
+            slowItems = [];
+            slowEffect = 0;
+            stars = [];
+            skiTracks = [];
+            initSnowflakes();
+            updateUI();
+        }
+
+        // 게임 루프
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 키보드 입력
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+        });
+
+        // 버튼 입력
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+
+        leftBtn.addEventListener('mousedown', () => keys.left = true);
+        leftBtn.addEventListener('mouseup', () => keys.left = false);
+        leftBtn.addEventListener('mouseleave', () => keys.left = false);
+        rightBtn.addEventListener('mousedown', () => keys.right = true);
+        rightBtn.addEventListener('mouseup', () => keys.right = false);
+        rightBtn.addEventListener('mouseleave', () => keys.right = false);
+
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
+        leftBtn.addEventListener('touchend', () => keys.left = false);
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
+        rightBtn.addEventListener('touchend', () => keys.right = false);
+
+        // 초기화
+        initSnowflakes();
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>

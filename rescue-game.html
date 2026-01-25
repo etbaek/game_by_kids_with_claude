@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인명 구조대 - Rescue Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a3a5c 0%, #0d2137 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .rescued .stat-value { color: #00ff88; }
+        .time .stat-value { color: #ffaa00; }
+        .level .stat-value { color: #00aaff; }
+
+        canvas {
+            border-radius: 10px;
+            cursor: crosshair;
+        }
+
+        .tools {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .tool {
+            width: 70px;
+            height: 70px;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.7rem;
+        }
+
+        .tool:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.05);
+        }
+
+        .tool.selected {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .tool-icon {
+            font-size: 1.8rem;
+            margin-bottom: 3px;
+        }
+
+        .instructions {
+            color: #888;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .game-over, .level-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+
+        .game-over { border: 2px solid #ff4444; }
+        .level-complete { border: 2px solid #00ff88; }
+
+        .game-over h2 { color: #ff4444; }
+        .level-complete h2 { color: #00ff88; }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .popup p {
+            color: #fff;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #000;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn.retry {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+    <div class="game-container">
+        <h1>🚨 인명 구조대</h1>
+        <div class="stats">
+            <div class="stat level">
+                <div class="stat-label">레벨</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat rescued">
+                <div class="stat-label">구조</div>
+                <div class="stat-value" id="rescued">0/0</div>
+            </div>
+            <div class="stat time">
+                <div class="stat-label">시간</div>
+                <div class="stat-value" id="time">300</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="700" height="500"></canvas>
+
+        <div class="tools" id="toolsContainer">
+            <div class="tool selected" data-tool="rope">
+                <div class="tool-icon">🪢</div>
+                <div>밧줄</div>
+            </div>
+            <div class="tool" data-tool="tube">
+                <div class="tool-icon">🛟</div>
+                <div>튜브</div>
+            </div>
+            <div class="tool" data-tool="boat">
+                <div class="tool-icon">🚤</div>
+                <div>보트</div>
+            </div>
+            <div class="tool" data-tool="helicopter">
+                <div class="tool-icon">🚁</div>
+                <div>헬리콥터</div>
+            </div>
+            <div class="tool" data-tool="lifejacket">
+                <div class="tool-icon">🦺</div>
+                <div>구명조끼</div>
+            </div>
+        </div>
+
+        <p class="instructions">🎯 도구를 선택하고 드래그해서 던지세요! (1~5 숫자키로 도구 선택)</p>
+
+        <div class="game-over" id="gameOver">
+            <h2>💀 시간 초과!</h2>
+            <p>구조하지 못한 사람이 있습니다...</p>
+            <p>구조한 인원: <span id="finalRescued" style="color:#00ff88">0</span>명</p>
+            <button class="btn retry" onclick="restartGame()">다시 도전</button>
+        </div>
+
+        <div class="level-complete" id="levelComplete">
+            <h2>🎉 레벨 클리어!</h2>
+            <p>모든 인원을 구조했습니다!</p>
+            <p>보너스 시간: +<span id="bonusTime" style="color:#ffaa00">0</span>초</p>
+            <button class="btn" onclick="nextLevel()">다음 레벨</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태
+        let gameRunning = true;
+        let level = 1;
+        let timeLeft = 300;
+        let rescuedCount = 0;
+        let totalPeople = 0;
+
+        // 선택된 도구
+        let selectedTool = 'rope';
+
+        // 도구 특성
+        const toolProperties = {
+            rope: { range: 200, speed: 15, size: 10, emoji: '🪢' },
+            tube: { range: 250, speed: 12, size: 25, emoji: '🛟' },
+            boat: { range: 300, speed: 8, size: 40, emoji: '🚤' },
+            helicopter: { range: 400, speed: 20, size: 35, emoji: '🚁' },
+            lifejacket: { range: 220, speed: 14, size: 20, emoji: '🦺' }
+        };
+
+        // 물에 빠진 사람들
+        let people = [];
+
+        // 날아가는 도구들
+        let flyingTools = [];
+
+        // 드래그 상태
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragEnd = { x: 0, y: 0 };
+
+        // 구조대원 위치
+        const rescuer = {
+            x: 50,
+            y: canvas.height - 80
+        };
+
+        // 파도 애니메이션
+        let waveOffset = 0;
+
+        // 레벨 초기화
+        function initLevel() {
+            people = [];
+            flyingTools = [];
+            rescuedCount = 0;
+
+            // 레벨에 따라 사람 수 증가
+            totalPeople = Math.min(2 + level, 8);
+            timeLeft = 300;
+
+            // 사람들 배치
+            for (let i = 0; i < totalPeople; i++) {
+                people.push({
+                    x: 200 + Math.random() * (canvas.width - 280),
+                    y: 150 + Math.random() * (canvas.height - 250),
+                    bobOffset: Math.random() * Math.PI * 2,
+                    waveArm: Math.random() * Math.PI * 2,
+                    rescued: false,
+                    rescuing: false,
+                    rescueProgress: 0
+                });
+            }
+
+            updateUI();
+        }
+
+        // 도구 선택
+        document.querySelectorAll('.tool').forEach(tool => {
+            tool.addEventListener('click', () => {
+                document.querySelectorAll('.tool').forEach(t => t.classList.remove('selected'));
+                tool.classList.add('selected');
+                selectedTool = tool.dataset.tool;
+            });
+        });
+
+        // 숫자키로 도구 선택
+        document.addEventListener('keydown', (e) => {
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= 5) {
+                const tools = ['rope', 'tube', 'boat', 'helicopter', 'lifejacket'];
+                selectedTool = tools[num - 1];
+                document.querySelectorAll('.tool').forEach(t => t.classList.remove('selected'));
+                document.querySelector(`[data-tool="${selectedTool}"]`).classList.add('selected');
+            }
+        });
+
+        // 마우스 이벤트
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            dragStart = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+            isDragging = true;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            dragEnd = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (!isDragging || !gameRunning) return;
+
+            const rect = canvas.getBoundingClientRect();
+            dragEnd = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            // 도구 발사
+            const dx = dragEnd.x - dragStart.x;
+            const dy = dragEnd.y - dragStart.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 20) {
+                const tool = toolProperties[selectedTool];
+                const power = Math.min(distance / 100, 1);
+
+                flyingTools.push({
+                    x: rescuer.x + 30,
+                    y: rescuer.y,
+                    vx: (dx / distance) * tool.speed * power,
+                    vy: (dy / distance) * tool.speed * power,
+                    type: selectedTool,
+                    size: tool.size,
+                    emoji: tool.emoji,
+                    rotation: 0
+                });
+            }
+
+            isDragging = false;
+        });
+
+        // 터치 이벤트
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            dragStart = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+            isDragging = true;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            dragEnd = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (!isDragging || !gameRunning) return;
+
+            const dx = dragEnd.x - dragStart.x;
+            const dy = dragEnd.y - dragStart.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 20) {
+                const tool = toolProperties[selectedTool];
+                const power = Math.min(distance / 100, 1);
+
+                flyingTools.push({
+                    x: rescuer.x + 30,
+                    y: rescuer.y,
+                    vx: (dx / distance) * tool.speed * power,
+                    vy: (dy / distance) * tool.speed * power,
+                    type: selectedTool,
+                    size: tool.size,
+                    emoji: tool.emoji,
+                    rotation: 0
+                });
+            }
+
+            isDragging = false;
+        });
+
+        // 배경 그리기
+        function drawBackground() {
+            // 하늘
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.4);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#E0F6FF');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.4);
+
+            // 태양
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(canvas.width - 60, 50, 30, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 구름
+            ctx.fillStyle = '#fff';
+            drawCloud(100, 40, 1);
+            drawCloud(300, 60, 0.8);
+            drawCloud(500, 30, 1.2);
+
+            // 물
+            const waterGradient = ctx.createLinearGradient(0, canvas.height * 0.3, 0, canvas.height);
+            waterGradient.addColorStop(0, '#4A90D9');
+            waterGradient.addColorStop(1, '#1E5799');
+            ctx.fillStyle = waterGradient;
+            ctx.fillRect(0, canvas.height * 0.3, canvas.width, canvas.height * 0.7);
+
+            // 파도
+            waveOffset += 0.05;
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height * 0.35 + i * 30);
+                for (let x = 0; x <= canvas.width; x += 20) {
+                    const y = canvas.height * 0.35 + i * 30 + Math.sin(x * 0.02 + waveOffset + i) * 8;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.lineTo(0, canvas.height);
+                ctx.fill();
+            }
+
+            // 해변/땅
+            ctx.fillStyle = '#C2B280';
+            ctx.fillRect(0, canvas.height - 60, 120, 60);
+
+            ctx.fillStyle = '#A09060';
+            ctx.beginPath();
+            ctx.moveTo(120, canvas.height - 60);
+            ctx.lineTo(150, canvas.height);
+            ctx.lineTo(120, canvas.height);
+            ctx.fill();
+        }
+
+        function drawCloud(x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.arc(25, -5, 25, 0, Math.PI * 2);
+            ctx.arc(50, 0, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // 구조대원 그리기
+        function drawRescuer() {
+            ctx.save();
+            ctx.translate(rescuer.x, rescuer.y);
+
+            // 몸통
+            ctx.fillStyle = '#FF6600';
+            ctx.fillRect(-15, -30, 30, 35);
+
+            // 머리
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath();
+            ctx.arc(0, -40, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 헬멧
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(0, -45, 14, Math.PI, 0);
+            ctx.fill();
+
+            // 다리
+            ctx.fillStyle = '#333';
+            ctx.fillRect(-12, 5, 10, 20);
+            ctx.fillRect(2, 5, 10, 20);
+
+            ctx.restore();
+
+            // 드래그 화살표
+            if (isDragging) {
+                const dx = dragEnd.x - dragStart.x;
+                const dy = dragEnd.y - dragStart.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 10) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([10, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(rescuer.x + 30, rescuer.y);
+                    ctx.lineTo(rescuer.x + 30 + dx, rescuer.y + dy);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // 파워 표시
+                    const power = Math.min(distance / 100, 1);
+                    ctx.fillStyle = `rgb(${255 * power}, ${255 * (1-power)}, 0)`;
+                    ctx.fillRect(rescuer.x - 20, rescuer.y + 30, 60 * power, 8);
+                    ctx.strokeStyle = '#fff';
+                    ctx.strokeRect(rescuer.x - 20, rescuer.y + 30, 60, 8);
+                }
+            }
+        }
+
+        // 물에 빠진 사람 그리기
+        function drawPeople() {
+            people.forEach(person => {
+                if (person.rescued) return;
+
+                const bobY = Math.sin(Date.now() / 500 + person.bobOffset) * 5;
+                const armWave = Math.sin(Date.now() / 200 + person.waveArm) * 0.5;
+
+                ctx.save();
+                ctx.translate(person.x, person.y + bobY);
+
+                if (person.rescuing) {
+                    // 구조 중 - 초록색 원
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 30, 0, Math.PI * 2 * person.rescueProgress);
+                    ctx.stroke();
+                }
+
+                // 머리
+                ctx.fillStyle = '#FFDAB9';
+                ctx.beginPath();
+                ctx.arc(0, -5, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 눈 (공포에 질린)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-4, -7, 2, 0, Math.PI * 2);
+                ctx.arc(4, -7, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 입 (도움 요청)
+                ctx.beginPath();
+                ctx.arc(0, -1, 4, 0, Math.PI);
+                ctx.stroke();
+
+                // 손 (흔들기)
+                ctx.fillStyle = '#FFDAB9';
+                ctx.save();
+                ctx.translate(-15, -10);
+                ctx.rotate(armWave - 0.5);
+                ctx.fillRect(-3, -20, 6, 20);
+                ctx.beginPath();
+                ctx.arc(0, -20, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(15, -10);
+                ctx.rotate(-armWave + 0.5);
+                ctx.fillRect(-3, -20, 6, 20);
+                ctx.beginPath();
+                ctx.arc(0, -20, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // 물 튀기는 효과
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                for (let i = 0; i < 5; i++) {
+                    const splashX = Math.sin(Date.now() / 100 + i) * 20;
+                    const splashY = Math.abs(Math.cos(Date.now() / 150 + i)) * 10;
+                    ctx.beginPath();
+                    ctx.arc(splashX, 10 - splashY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            });
+        }
+
+        // 날아가는 도구 그리기
+        function drawFlyingTools() {
+            flyingTools.forEach(tool => {
+                ctx.save();
+                ctx.translate(tool.x, tool.y);
+                ctx.rotate(tool.rotation);
+
+                ctx.font = `${tool.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(tool.emoji, 0, 0);
+
+                ctx.restore();
+            });
+        }
+
+        // 업데이트
+        function update() {
+            if (!gameRunning) return;
+
+            // 도구 이동
+            flyingTools.forEach((tool, index) => {
+                tool.x += tool.vx;
+                tool.y += tool.vy;
+                tool.vy += 0.2; // 중력
+                tool.rotation += 0.1;
+
+                // 화면 밖으로 나가면 제거
+                if (tool.y > canvas.height + 50 || tool.x > canvas.width + 50 || tool.x < -50) {
+                    flyingTools.splice(index, 1);
+                    return;
+                }
+
+                // 사람과 충돌 체크
+                people.forEach(person => {
+                    if (person.rescued || person.rescuing) return;
+
+                    const dx = tool.x - person.x;
+                    const dy = tool.y - person.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < tool.size + 20) {
+                        person.rescuing = true;
+                        flyingTools.splice(index, 1);
+                    }
+                });
+            });
+
+            // 구조 진행
+            people.forEach(person => {
+                if (person.rescuing && !person.rescued) {
+                    person.rescueProgress += 0.02;
+                    if (person.rescueProgress >= 1) {
+                        person.rescued = true;
+                        rescuedCount++;
+                        updateUI();
+
+                        // 모두 구조 완료?
+                        if (rescuedCount >= totalPeople) {
+                            levelComplete();
+                        }
+                    }
+                }
+            });
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('level').textContent = level;
+            document.getElementById('rescued').textContent = `${rescuedCount}/${totalPeople}`;
+            document.getElementById('time').textContent = timeLeft;
+        }
+
+        // 레벨 클리어
+        function levelComplete() {
+            gameRunning = false;
+            const bonus = timeLeft;
+            document.getElementById('bonusTime').textContent = bonus;
+            document.getElementById('levelComplete').style.display = 'block';
+        }
+
+        // 다음 레벨
+        function nextLevel() {
+            level++;
+            document.getElementById('levelComplete').style.display = 'none';
+            gameRunning = true;
+            initLevel();
+        }
+
+        // 게임 오버
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalRescued').textContent = rescuedCount;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            level = 1;
+            document.getElementById('gameOver').style.display = 'none';
+            gameRunning = true;
+            initLevel();
+        }
+
+        // 그리기
+        function draw() {
+            drawBackground();
+            drawPeople();
+            drawFlyingTools();
+            drawRescuer();
+        }
+
+        // 타이머
+        setInterval(() => {
+            if (gameRunning && timeLeft > 0) {
+                timeLeft--;
+                updateUI();
+
+                if (timeLeft <= 0) {
+                    gameOver();
+                }
+            }
+        }, 1000);
+
+        // 게임 루프
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 시작
+        initLevel();
+        gameLoop();
+    </script>
+</body>
+</html>

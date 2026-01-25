@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milkyway Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            position: relative;
+            height: 200px;
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            z-index: 1;
+        }
+
+        .game-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+            z-index: 2;
+        }
+
+        .game-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -60%);
+            font-size: 4rem;
+            z-index: 3;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .game-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            z-index: 3;
+        }
+
+        .game-title {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .game-desc {
+            color: #bbb;
+            font-size: 0.85rem;
+        }
+
+        /* Bird Game */
+        .bird-game {
+            background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #7FBC8C 100%);
+        }
+
+        /* Snake Game */
+        .snake-game {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c23 50%, #6b8e23 100%);
+        }
+
+        /* Trash Collector */
+        .trash-game {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #CD853F 100%);
+        }
+
+        /* Stair Climb */
+        .stair-climb {
+            background: linear-gradient(135deg, #4a0080 0%, #7b1fa2 50%, #9c27b0 100%);
+        }
+
+        /* Infinite Stairs */
+        .infinite-stairs {
+            background: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #2196f3 100%);
+        }
+
+        /* Rescue Game */
+        .rescue-game {
+            background: linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1e88e5 100%);
+        }
+
+        /* Stair Rescue */
+        .stair-rescue {
+            background: linear-gradient(135deg, #b71c1c 0%, #c62828 30%, #1565c0 70%, #0d47a1 100%);
+        }
+
+        /* Super Kiri */
+        .super-kiri {
+            background: linear-gradient(135deg, #ff9966 0%, #ff5e62 50%, #ff9966 100%);
+        }
+
+        /* Ski Game */
+        .ski-game {
+            background: linear-gradient(135deg, #e0ffff 0%, #87ceeb 50%, #b0e0e6 100%);
+        }
+
+        /* Decorative elements */
+        .decoration {
+            position: absolute;
+            opacity: 0.3;
+            z-index: 1;
+        }
+
+        /* Stars background */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .play-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 4;
+            backdrop-filter: blur(5px);
+        }
+
+        footer {
+            text-align: center;
+            color: #555;
+            margin-top: 50px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <h1>Milkyway Games</h1>
+    <p class="subtitle">Choose a game to play!</p>
+
+    <div class="games-grid">
+        <!-- Bird Game -->
+        <a href="bird-game.html" class="game-card bird-game">
+            <div class="game-icon">🐦</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Bird Game</div>
+                <div class="game-desc">먹이를 먹고 장애물을 피해요! 깃털 30개를 지켜라!</div>
+            </div>
+        </a>
+
+        <!-- Snake Game -->
+        <a href="snake-game.html" class="game-card snake-game">
+            <div class="game-icon">🐍</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Snake Game</div>
+                <div class="game-desc">클래식 뱀 게임! 먹이를 먹고 길어져라!</div>
+            </div>
+        </a>
+
+        <!-- Trash Collector -->
+        <a href="trash-collector.html" class="game-card trash-game">
+            <div class="game-icon">🚶</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Trash Collector</div>
+                <div class="game-desc">쓰레기를 주워서 집으로 가져가요!</div>
+            </div>
+        </a>
+
+        <!-- Stair Climb -->
+        <a href="stair-climb.html" class="game-card stair-climb">
+            <div class="game-icon">🦘</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Stair Climb</div>
+                <div class="game-desc">점프해서 계단을 올라가요! 장애물 조심!</div>
+            </div>
+        </a>
+
+        <!-- Infinite Stairs -->
+        <a href="infinite-stairs.html" class="game-card infinite-stairs">
+            <div class="game-icon">🏃</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Infinite Stairs</div>
+                <div class="game-desc">무한의 계단! 방향에 맞춰 빠르게 올라가요!</div>
+            </div>
+        </a>
+
+        <!-- Rescue Game -->
+        <a href="rescue-game.html" class="game-card rescue-game">
+            <div class="game-icon">🛟</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Rescue Game</div>
+                <div class="game-desc">물에 빠진 사람을 구조 도구로 구해요!</div>
+            </div>
+        </a>
+
+        <!-- Stair Rescue -->
+        <a href="stair-rescue.html" class="game-card stair-rescue">
+            <div class="game-icon">🚨</div>
+            <span class="play-badge">PLAY</span>
+            <div class="game-info">
+                <div class="game-title">Stair & Rescue</div>
+                <div class="game-desc">계단을 오르다 떨어지면 구조 모드! 살아남아라!</div>
+            </div>
+        </a>
+
+        <!-- Super Kiri -->
+        <a href="super-kiri.html" class="game-card super-kiri">
+            <div class="game-icon">🐱</div>
+            <span class="play-badge">NEW</span>
+            <div class="game-info">
+                <div class="game-title">Super Kiri</div>
+                <div class="game-desc">귀여운 고양이 키리와 플랫포머 모험!</div>
+            </div>
+        </a>
+
+        <!-- Ski Game -->
+        <a href="ski-game.html" class="game-card ski-game">
+            <div class="game-icon">⛷️</div>
+            <span class="play-badge">NEW</span>
+            <div class="game-info">
+                <div class="game-title">Ski Game</div>
+                <div class="game-desc">눈 덮인 슬로프를 질주! 장애물을 피해요!</div>
+            </div>
+        </a>
+    </div>
+
+    <footer>
+        Made with fun
+    </footer>
+
+    <script>
+        // Create twinkling stars
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.width = Math.random() * 3 + 1 + 'px';
+            star.style.height = star.style.width;
+            star.style.animationDelay = Math.random() * 2 + 's';
+            starsContainer.appendChild(star);
+        }
+    </script>
+</body>
+</html>

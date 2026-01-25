@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>슈퍼 키리 - Super Kiri</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .coins .stat-value { color: #ffd700; }
+        .level .stat-value { color: #00ff88; }
+        .lives .stat-value { color: #ff6b6b; }
+
+        canvas {
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 150, 100, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 55px;
+            font-size: 1.3rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+            color: #fff;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .left-btn, .right-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .jump-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            width: 100px;
+        }
+
+        .instructions {
+            color: #888;
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .game-over, .level-clear, .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            border: 2px solid #ff9966;
+        }
+
+        .game-over { border-color: #ff4444; display: none; }
+        .level-clear { border-color: #00ff88; display: none; }
+
+        .game-over h2 { color: #ff4444; }
+        .level-clear h2 { color: #00ff88; }
+        .start-screen h2 { color: #ff9966; }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .overlay p {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .start-screen p {
+            color: #ccc;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+
+    <div class="game-container">
+        <h1>🐱 슈퍼 키리 🐱</h1>
+        <div class="stats">
+            <div class="stat coins">
+                <div class="stat-label">코인</div>
+                <div class="stat-value" id="coins">0</div>
+            </div>
+            <div class="stat level">
+                <div class="stat-label">레벨</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat lives">
+                <div class="stat-label">생명</div>
+                <div class="stat-value" id="lives">❤️❤️❤️</div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="500" height="400"></canvas>
+
+        <div class="controls">
+            <button class="control-btn left-btn" id="leftBtn">⬅️</button>
+            <button class="control-btn jump-btn" id="jumpBtn">⬆️ 점프</button>
+            <button class="control-btn right-btn" id="rightBtn">➡️</button>
+        </div>
+
+        <p class="instructions">⬅️ ➡️ 이동 | ⬆️ 또는 스페이스 점프 | 🚩 깃발에 도착하면 클리어!</p>
+
+        <div class="start-screen" id="startScreen">
+            <h2>🐱 슈퍼 키리</h2>
+            <p>
+                귀여운 고양이 키리와 함께<br>
+                모험을 떠나요!<br><br>
+                🪙 코인을 모으고<br>
+                👾 적을 피하거나 밟고<br>
+                🚩 깃발에 도착하면 클리어!
+            </p>
+            <button class="btn" onclick="startGame()">게임 시작</button>
+        </div>
+
+        <div class="level-clear" id="levelClear">
+            <h2>🎉 레벨 클리어!</h2>
+            <p>획득 코인: <span id="levelCoins">0</span></p>
+            <button class="btn" onclick="nextLevel()">다음 레벨</button>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h2>💀 게임 오버</h2>
+            <p>총 코인: <span id="totalCoins">0</span></p>
+            <p>도달 레벨: <span id="reachedLevel">1</span></p>
+            <button class="btn" onclick="restartGame()">다시 도전</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태
+        let gameRunning = false;
+        let currentLevel = 1;
+        let coins = 0;
+        let lives = 3;
+
+        // 키리 (플레이어)
+        const kiri = {
+            x: 50,
+            y: 300,
+            width: 32,
+            height: 32,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: -12,
+            onGround: false,
+            direction: 1,
+            frame: 0,
+            tailWag: 0
+        };
+
+        // 물리
+        const gravity = 0.5;
+        const friction = 0.8;
+
+        // 레벨 요소들
+        let platforms = [];
+        let coinItems = [];
+        let enemies = [];
+        let flag = null;
+
+        // 입력
+        const keys = {
+            left: false,
+            right: false,
+            jump: false
+        };
+
+        // 레벨 생성
+        function generateLevel(level) {
+            platforms = [];
+            coinItems = [];
+            enemies = [];
+
+            // 바닥
+            platforms.push({ x: 0, y: 370, width: 500, height: 30, type: 'ground' });
+
+            if (level === 1) {
+                // 레벨 1 - 쉬운 시작
+                platforms.push({ x: 80, y: 300, width: 80, height: 15, type: 'platform' });
+                platforms.push({ x: 200, y: 250, width: 80, height: 15, type: 'platform' });
+                platforms.push({ x: 320, y: 200, width: 80, height: 15, type: 'platform' });
+                platforms.push({ x: 400, y: 150, width: 80, height: 15, type: 'platform' });
+
+                coinItems.push({ x: 110, y: 270, collected: false });
+                coinItems.push({ x: 230, y: 220, collected: false });
+                coinItems.push({ x: 350, y: 170, collected: false });
+
+                flag = { x: 440, y: 110, width: 30, height: 40 };
+
+            } else if (level === 2) {
+                // 레벨 2 - 적 등장
+                platforms.push({ x: 60, y: 310, width: 70, height: 15, type: 'platform' });
+                platforms.push({ x: 160, y: 260, width: 70, height: 15, type: 'platform' });
+                platforms.push({ x: 260, y: 310, width: 70, height: 15, type: 'platform' });
+                platforms.push({ x: 360, y: 260, width: 70, height: 15, type: 'platform' });
+                platforms.push({ x: 420, y: 180, width: 70, height: 15, type: 'platform' });
+
+                coinItems.push({ x: 85, y: 280, collected: false });
+                coinItems.push({ x: 185, y: 230, collected: false });
+                coinItems.push({ x: 285, y: 280, collected: false });
+                coinItems.push({ x: 385, y: 230, collected: false });
+
+                enemies.push({ x: 200, y: 340, width: 30, height: 30, vx: 1.5, minX: 150, maxX: 300 });
+
+                flag = { x: 445, y: 140, width: 30, height: 40 };
+
+            } else if (level === 3) {
+                // 레벨 3 - 더 어려움
+                platforms.push({ x: 50, y: 320, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 140, y: 270, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 230, y: 220, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 140, y: 170, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 50, y: 120, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 300, y: 320, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 380, y: 250, width: 60, height: 15, type: 'platform' });
+                platforms.push({ x: 420, y: 150, width: 70, height: 15, type: 'platform' });
+
+                coinItems.push({ x: 70, y: 290, collected: false });
+                coinItems.push({ x: 160, y: 240, collected: false });
+                coinItems.push({ x: 250, y: 190, collected: false });
+                coinItems.push({ x: 160, y: 140, collected: false });
+                coinItems.push({ x: 70, y: 90, collected: false });
+
+                enemies.push({ x: 300, y: 340, width: 30, height: 30, vx: 2, minX: 250, maxX: 400 });
+                enemies.push({ x: 200, y: 340, width: 30, height: 30, vx: -1.5, minX: 100, maxX: 250 });
+
+                flag = { x: 445, y: 110, width: 30, height: 40 };
+
+            } else {
+                // 레벨 4+ - 랜덤 생성
+                let y = 320;
+                let x = 50;
+                for (let i = 0; i < 6 + level; i++) {
+                    const pw = 50 + Math.random() * 40;
+                    platforms.push({ x: x, y: y, width: pw, height: 15, type: 'platform' });
+                    coinItems.push({ x: x + pw/2 - 10, y: y - 30, collected: false });
+
+                    x += pw + 30 + Math.random() * 40;
+                    y -= 30 + Math.random() * 30;
+
+                    if (x > 400 || y < 100) break;
+                }
+
+                // 적 추가
+                for (let i = 0; i < Math.min(level - 1, 4); i++) {
+                    enemies.push({
+                        x: 100 + i * 100,
+                        y: 340,
+                        width: 30,
+                        height: 30,
+                        vx: 1 + Math.random() * level * 0.3,
+                        minX: 50 + i * 80,
+                        maxX: 150 + i * 100
+                    });
+                }
+
+                flag = { x: Math.min(x, 450), y: Math.max(y - 40, 80), width: 30, height: 40 };
+            }
+
+            // 키리 위치 초기화
+            kiri.x = 50;
+            kiri.y = 300;
+            kiri.vx = 0;
+            kiri.vy = 0;
+            kiri.onGround = false;
+        }
+
+        // 키리 그리기
+        function drawKiri() {
+            ctx.save();
+            ctx.translate(kiri.x + kiri.width / 2, kiri.y + kiri.height / 2);
+            ctx.scale(kiri.direction, 1);
+
+            kiri.tailWag += 0.2;
+            const tailAngle = Math.sin(kiri.tailWag) * 0.3;
+
+            // 꼬리
+            ctx.strokeStyle = '#ff9966';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-12, 5);
+            ctx.quadraticCurveTo(-20, 0 + Math.sin(kiri.tailWag) * 5, -25, -8 + Math.sin(kiri.tailWag) * 3);
+            ctx.stroke();
+
+            // 몸통
+            ctx.fillStyle = '#ff9966';
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 14, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 머리
+            ctx.fillStyle = '#ff9966';
+            ctx.beginPath();
+            ctx.arc(8, -5, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 귀
+            ctx.beginPath();
+            ctx.moveTo(2, -14);
+            ctx.lineTo(-2, -22);
+            ctx.lineTo(6, -16);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(14, -14);
+            ctx.lineTo(18, -22);
+            ctx.lineTo(12, -16);
+            ctx.fill();
+
+            // 귀 안쪽
+            ctx.fillStyle = '#ffccaa';
+            ctx.beginPath();
+            ctx.moveTo(2, -14);
+            ctx.lineTo(0, -19);
+            ctx.lineTo(5, -15);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(14, -14);
+            ctx.lineTo(16, -19);
+            ctx.lineTo(13, -15);
+            ctx.fill();
+
+            // 눈
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(5, -6, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(13, -6, 3, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈 하이라이트
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(4, -7, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(12, -7, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 코
+            ctx.fillStyle = '#ff6666';
+            ctx.beginPath();
+            ctx.ellipse(9, -2, 2, 1.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 수염
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(1, -1);
+            ctx.lineTo(-8, -3);
+            ctx.moveTo(1, 1);
+            ctx.lineTo(-8, 2);
+            ctx.moveTo(17, -1);
+            ctx.lineTo(26, -3);
+            ctx.moveTo(17, 1);
+            ctx.lineTo(26, 2);
+            ctx.stroke();
+
+            // 다리
+            ctx.fillStyle = '#ff9966';
+            const legOffset = Math.sin(kiri.frame) * 3;
+            // 앞다리
+            ctx.fillRect(6, 12, 5, 8 + (kiri.onGround ? 0 : legOffset));
+            // 뒷다리
+            ctx.fillRect(-8, 12, 5, 8 + (kiri.onGround ? 0 : -legOffset));
+
+            ctx.restore();
+
+            // 이동 중이면 프레임 업데이트
+            if (Math.abs(kiri.vx) > 0.5) {
+                kiri.frame += 0.3;
+            }
+        }
+
+        // 플랫폼 그리기
+        function drawPlatforms() {
+            platforms.forEach(p => {
+                if (p.type === 'ground') {
+                    // 잔디 바닥
+                    ctx.fillStyle = '#4a7c23';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                    ctx.fillStyle = '#6b8e23';
+                    ctx.fillRect(p.x, p.y, p.width, 8);
+                } else {
+                    // 플랫폼
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                    ctx.fillStyle = '#A0522D';
+                    ctx.fillRect(p.x, p.y, p.width, 5);
+                    // 나무 무늬
+                    ctx.strokeStyle = '#654321';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < p.width; i += 15) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x + i, p.y);
+                        ctx.lineTo(p.x + i, p.y + p.height);
+                        ctx.stroke();
+                    }
+                }
+            });
+        }
+
+        // 코인 그리기
+        function drawCoins() {
+            coinItems.forEach(c => {
+                if (c.collected) return;
+
+                const bob = Math.sin(Date.now() / 200 + c.x) * 3;
+
+                // 코인
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(c.x + 10, c.y + 10 + bob, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 반짝임
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(c.x + 7, c.y + 7 + bob, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // $ 표시
+                ctx.fillStyle = '#cc9900';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('$', c.x + 10, c.y + 14 + bob);
+            });
+        }
+
+        // 적 그리기
+        function drawEnemies() {
+            enemies.forEach(e => {
+                // 몸통 (가시 공)
+                ctx.fillStyle = '#8844aa';
+                ctx.beginPath();
+                ctx.arc(e.x + e.width/2, e.y + e.height/2, e.width/2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 가시
+                ctx.fillStyle = '#aa66cc';
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + Date.now() / 500;
+                    const sx = e.x + e.width/2 + Math.cos(angle) * (e.width/2 + 5);
+                    const sy = e.y + e.height/2 + Math.sin(angle) * (e.height/2 + 5);
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 눈
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(e.x + e.width/2 - 5, e.y + e.height/2 - 3, 5, 0, Math.PI * 2);
+                ctx.arc(e.x + e.width/2 + 5, e.y + e.height/2 - 3, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(e.x + e.width/2 - 5 + (e.vx > 0 ? 1 : -1), e.y + e.height/2 - 3, 2, 0, Math.PI * 2);
+                ctx.arc(e.x + e.width/2 + 5 + (e.vx > 0 ? 1 : -1), e.y + e.height/2 - 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 깃발 그리기
+        function drawFlag() {
+            if (!flag) return;
+
+            // 기둥
+            ctx.fillStyle = '#888';
+            ctx.fillRect(flag.x + 12, flag.y, 6, flag.height);
+
+            // 깃발
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath();
+            ctx.moveTo(flag.x + 18, flag.y);
+            ctx.lineTo(flag.x + 45, flag.y + 12);
+            ctx.lineTo(flag.x + 18, flag.y + 24);
+            ctx.fill();
+
+            // 별
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '14px Arial';
+            ctx.fillText('★', flag.x + 24, flag.y + 17);
+        }
+
+        // 배경 그리기
+        function drawBackground() {
+            // 하늘
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.7, '#E0F6FF');
+            gradient.addColorStop(1, '#98D8C8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 구름
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            const cloudOffset = (Date.now() / 50) % (canvas.width + 100);
+            drawCloud(cloudOffset - 50, 50);
+            drawCloud((cloudOffset + 200) % (canvas.width + 100) - 50, 80);
+            drawCloud((cloudOffset + 350) % (canvas.width + 100) - 50, 40);
+        }
+
+        function drawCloud(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.arc(x + 25, y - 5, 25, 0, Math.PI * 2);
+            ctx.arc(x + 50, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 업데이트
+        function update() {
+            if (!gameRunning) return;
+
+            // 입력 처리
+            if (keys.left) {
+                kiri.vx = -kiri.speed;
+                kiri.direction = -1;
+            } else if (keys.right) {
+                kiri.vx = kiri.speed;
+                kiri.direction = 1;
+            } else {
+                kiri.vx *= friction;
+            }
+
+            if (keys.jump && kiri.onGround) {
+                kiri.vy = kiri.jumpPower;
+                kiri.onGround = false;
+            }
+
+            // 중력
+            kiri.vy += gravity;
+
+            // 이동
+            kiri.x += kiri.vx;
+            kiri.y += kiri.vy;
+
+            // 경계
+            if (kiri.x < 0) kiri.x = 0;
+            if (kiri.x > canvas.width - kiri.width) kiri.x = canvas.width - kiri.width;
+
+            // 플랫폼 충돌
+            kiri.onGround = false;
+            platforms.forEach(p => {
+                if (kiri.x + kiri.width > p.x && kiri.x < p.x + p.width) {
+                    // 위에서 착지
+                    if (kiri.vy > 0 && kiri.y + kiri.height > p.y && kiri.y + kiri.height < p.y + p.height + kiri.vy) {
+                        kiri.y = p.y - kiri.height;
+                        kiri.vy = 0;
+                        kiri.onGround = true;
+                    }
+                    // 아래에서 충돌
+                    else if (kiri.vy < 0 && kiri.y < p.y + p.height && kiri.y > p.y) {
+                        kiri.y = p.y + p.height;
+                        kiri.vy = 0;
+                    }
+                }
+            });
+
+            // 코인 수집
+            coinItems.forEach(c => {
+                if (c.collected) return;
+                const dx = (kiri.x + kiri.width/2) - (c.x + 10);
+                const dy = (kiri.y + kiri.height/2) - (c.y + 10);
+                if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                    c.collected = true;
+                    coins++;
+                    updateUI();
+                }
+            });
+
+            // 적 이동 및 충돌
+            enemies.forEach((e, index) => {
+                e.x += e.vx;
+                if (e.x <= e.minX || e.x + e.width >= e.maxX) {
+                    e.vx *= -1;
+                }
+
+                // 키리와 충돌 체크
+                if (kiri.x + kiri.width > e.x && kiri.x < e.x + e.width &&
+                    kiri.y + kiri.height > e.y && kiri.y < e.y + e.height) {
+
+                    // 위에서 밟음
+                    if (kiri.vy > 0 && kiri.y + kiri.height < e.y + e.height / 2) {
+                        enemies.splice(index, 1);
+                        kiri.vy = kiri.jumpPower * 0.7;
+                        coins += 5;
+                        updateUI();
+                    } else {
+                        // 피해
+                        takeDamage();
+                    }
+                }
+            });
+
+            // 깃발 도달
+            if (flag && kiri.x + kiri.width > flag.x && kiri.x < flag.x + flag.width &&
+                kiri.y + kiri.height > flag.y && kiri.y < flag.y + flag.height) {
+                levelClear();
+            }
+
+            // 낙사
+            if (kiri.y > canvas.height) {
+                takeDamage();
+            }
+        }
+
+        // 피해
+        function takeDamage() {
+            lives--;
+            updateUI();
+
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                kiri.x = 50;
+                kiri.y = 300;
+                kiri.vx = 0;
+                kiri.vy = 0;
+            }
+        }
+
+        // 레벨 클리어
+        function levelClear() {
+            gameRunning = false;
+            document.getElementById('levelCoins').textContent = coins;
+            document.getElementById('levelClear').style.display = 'block';
+        }
+
+        // 다음 레벨
+        function nextLevel() {
+            document.getElementById('levelClear').style.display = 'none';
+            currentLevel++;
+            document.getElementById('level').textContent = currentLevel;
+            generateLevel(currentLevel);
+            gameRunning = true;
+        }
+
+        // 게임 오버
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('totalCoins').textContent = coins;
+            document.getElementById('reachedLevel').textContent = currentLevel;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('lives').textContent = '❤️'.repeat(lives) + '🖤'.repeat(3 - lives);
+        }
+
+        // 그리기
+        function draw() {
+            drawBackground();
+            drawPlatforms();
+            drawCoins();
+            drawEnemies();
+            drawFlag();
+            drawKiri();
+        }
+
+        // 게임 루프
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 게임 시작
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            currentLevel = 1;
+            coins = 0;
+            lives = 3;
+            generateLevel(1);
+            updateUI();
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            gameRunning = true;
+            currentLevel = 1;
+            coins = 0;
+            lives = 3;
+            generateLevel(1);
+            updateUI();
+            document.getElementById('level').textContent = 1;
+        }
+
+        // 키보드 입력
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') {
+                keys.jump = true;
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
+        });
+
+        // 버튼 입력
+        document.getElementById('leftBtn').addEventListener('mousedown', () => keys.left = true);
+        document.getElementById('leftBtn').addEventListener('mouseup', () => keys.left = false);
+        document.getElementById('leftBtn').addEventListener('mouseleave', () => keys.left = false);
+        document.getElementById('rightBtn').addEventListener('mousedown', () => keys.right = true);
+        document.getElementById('rightBtn').addEventListener('mouseup', () => keys.right = false);
+        document.getElementById('rightBtn').addEventListener('mouseleave', () => keys.right = false);
+        document.getElementById('jumpBtn').addEventListener('mousedown', () => keys.jump = true);
+        document.getElementById('jumpBtn').addEventListener('mouseup', () => keys.jump = false);
+        document.getElementById('jumpBtn').addEventListener('mouseleave', () => keys.jump = false);
+
+        // 터치 입력
+        document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
+        document.getElementById('leftBtn').addEventListener('touchend', () => keys.left = false);
+        document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
+        document.getElementById('rightBtn').addEventListener('touchend', () => keys.right = false);
+        document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; });
+        document.getElementById('jumpBtn').addEventListener('touchend', () => keys.jump = false);
+
+        // 시작
+        gameLoop();
+    </script>
+</body>
+</html>

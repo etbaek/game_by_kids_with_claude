@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뱀 게임</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            cursor: none;
+        }
+
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .length {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        .game-over p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="hud">
+        <div class="score">스테이지: <span id="stage">1</span></div>
+        <div class="score">점수: <span id="score">0</span> / <span id="targetScore">50</span></div>
+        <div class="length">시간: <span id="timer">60</span>초</div>
+        <div class="length">길이: <span id="length">1</span></div>
+    </div>
+
+    <div class="controls">
+        마우스를 클릭하면 먹이가 생성됩니다
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>게임 오버!</h2>
+        <p>더 큰 뱀에게 당했습니다!</p>
+        <p>최종 점수: <span id="finalScore">0</span></p>
+        <button onclick="restartGame()">다시 시작</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const lengthElement = document.getElementById('length');
+        const stageElement = document.getElementById('stage');
+        const targetScoreElement = document.getElementById('targetScore');
+        const timerElement = document.getElementById('timer');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        // 캔버스를 전체 화면으로 설정
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        const gridSize = 20;
+        const maxSnakeLength = 30; // 이 길이를 넘으면 똥을 싸기 시작
+
+        // 과일 종류
+        const fruits = ['🍎', '🍌', '🍓', '🍇', '🥭', '🍉', '🍋', '🍊', '🍑', '🍒'];
+
+        // 카메라 오프셋 (뱀을 중심에 두기 위함)
+        let cameraX = 0;
+        let cameraY = 0;
+
+        // 스테이지 설정
+        const stages = [
+            { stage: 1, targetScore: 50, timeLimit: 60 },
+            { stage: 2, targetScore: 120, timeLimit: 70 },
+            { stage: 3, targetScore: 200, timeLimit: 80 },
+            { stage: 4, targetScore: 300, timeLimit: 90 },
+            { stage: 5, targetScore: 450, timeLimit: 100 }
+        ];
+
+        // 게임 상태
+        let snake = [{ x: 0, y: 0 }];
+        let foods = []; // 먹이를 배열로 변경
+        let babySnakes = []; // 아기 뱀들 배열
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        let score = 0;
+        let currentStage = 0;
+        let timeRemaining = stages[0].timeLimit;
+        let lastTime = Date.now();
+        let gameSpeed = 100;
+        let gameLoop;
+        let isGameOver = false;
+        let dx = 1; // 초기 이동 방향
+        let dy = 0;
+
+        // 마우스 위치 추적
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // 클릭으로 먹이 생성
+        canvas.addEventListener('click', (e) => {
+            if (!isGameOver) {
+                const worldX = Math.floor((e.clientX + cameraX) / gridSize);
+                const worldY = Math.floor((e.clientY + cameraY) / gridSize);
+                const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+                foods.push({ x: worldX, y: worldY, fruit: randomFruit });
+            }
+        });
+
+        function drawGame() {
+            if (isGameOver) return;
+
+            // 시간 업데이트
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+            timeRemaining -= deltaTime;
+
+            // 시간 초과 체크
+            if (timeRemaining <= 0) {
+                endGame('timeout');
+                return;
+            }
+
+            // 스테이지 클리어 체크
+            if (score >= stages[currentStage].targetScore) {
+                if (currentStage < stages.length - 1) {
+                    nextStage();
+                } else {
+                    // 마지막 스테이지 클리어
+                    endGame('clear');
+                    return;
+                }
+            }
+
+            moveSnake();
+            moveBabySnakes();
+            checkCollisions();
+
+            clearCanvas();
+            drawGrid();
+            drawBabySnakes();
+            drawSnake();
+            drawCursor();
+            drawFood();
+            updateHUD();
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawGrid() {
+            // 더 두꺼운 그리드 배경
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+
+            const startX = Math.floor(cameraX / gridSize) * gridSize;
+            const startY = Math.floor(cameraY / gridSize) * gridSize;
+
+            for (let x = startX; x < cameraX + canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x - cameraX, 0);
+                ctx.lineTo(x - cameraX, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = startY; y < cameraY + canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y - cameraY);
+                ctx.lineTo(canvas.width, y - cameraY);
+                ctx.stroke();
+            }
+
+            // 큰 타일 패턴 추가 (움직임 인식)
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+            ctx.lineWidth = 2;
+            const bigGridSize = gridSize * 5;
+            const bigStartX = Math.floor(cameraX / bigGridSize) * bigGridSize;
+            const bigStartY = Math.floor(cameraY / bigGridSize) * bigGridSize;
+
+            for (let x = bigStartX; x < cameraX + canvas.width; x += bigGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x - cameraX, 0);
+                ctx.lineTo(x - cameraX, canvas.height);
+                ctx.stroke();
+            }
+
+            for (let y = bigStartY; y < cameraY + canvas.height; y += bigGridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y - cameraY);
+                ctx.lineTo(canvas.width, y - cameraY);
+                ctx.stroke();
+            }
+
+            // 배경에 점들 추가
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            const dotSize = 2;
+            const dotSpacing = gridSize * 10;
+            const dotStartX = Math.floor(cameraX / dotSpacing) * dotSpacing;
+            const dotStartY = Math.floor(cameraY / dotSpacing) * dotSpacing;
+
+            for (let x = dotStartX; x < cameraX + canvas.width; x += dotSpacing) {
+                for (let y = dotStartY; y < cameraY + canvas.height; y += dotSpacing) {
+                    ctx.beginPath();
+                    ctx.arc(x - cameraX + dotSpacing/2, y - cameraY + dotSpacing/2, dotSize, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawSnake() {
+            // 부드러운 곡선으로 뱀 몸통 그리기
+            if (snake.length > 1) {
+                ctx.strokeStyle = '#45b393';
+                ctx.lineWidth = gridSize - 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                for (let i = 0; i < snake.length; i++) {
+                    const segment = snake[i];
+                    const screenX = segment.x * gridSize - cameraX + gridSize / 2;
+                    const screenY = segment.y * gridSize - cameraY + gridSize / 2;
+
+                    if (i === 0) {
+                        ctx.moveTo(screenX, screenY);
+                    } else {
+                        ctx.lineTo(screenX, screenY);
+                    }
+                }
+                ctx.stroke();
+
+                // 몸통에 비늘 패턴 추가
+                for (let i = 1; i < snake.length; i++) {
+                    const segment = snake[i];
+                    const screenX = segment.x * gridSize - cameraX + gridSize / 2;
+                    const screenY = segment.y * gridSize - cameraY + gridSize / 2;
+
+                    // 밝은 비늘
+                    ctx.fillStyle = i % 2 === 0 ? '#4ecca3' : '#45b393';
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, gridSize / 2 - 2, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // 비늘 하이라이트
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                    ctx.beginPath();
+                    ctx.arc(screenX - 2, screenY - 2, gridSize / 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // 머리 그리기
+            if (snake.length > 0) {
+                const head = snake[0];
+                const screenX = head.x * gridSize - cameraX + gridSize / 2;
+                const screenY = head.y * gridSize - cameraY + gridSize / 2;
+
+                // 머리 방향 계산
+                let angle = 0;
+                if (snake.length > 1) {
+                    const neck = snake[1];
+                    angle = Math.atan2(head.y - neck.y, head.x - neck.x);
+                } else {
+                    angle = Math.atan2(dy, dx);
+                }
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                ctx.rotate(angle);
+
+                // 머리 타원형
+                ctx.fillStyle = '#4ecca3';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, gridSize / 2 + 2, gridSize / 2 - 1, 0, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // 머리 하이라이트
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.beginPath();
+                ctx.ellipse(2, -2, gridSize / 3, gridSize / 4, 0, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // 눈
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(3, -4, 3.5, 0, 2 * Math.PI);
+                ctx.arc(3, 4, 3.5, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(4, -4, 2, 0, 2 * Math.PI);
+                ctx.arc(4, 4, 2, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // 눈 반짝임
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(5, -5, 0.8, 0, 2 * Math.PI);
+                ctx.arc(5, 3, 0.8, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // 혀
+                if (Math.floor(Date.now() / 200) % 2 === 0) {
+                    ctx.strokeStyle = '#ff4757';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(gridSize / 2 + 2, 0);
+                    ctx.lineTo(gridSize / 2 + 8, -2);
+                    ctx.moveTo(gridSize / 2 + 2, 0);
+                    ctx.lineTo(gridSize / 2 + 8, 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function drawFood() {
+            // 가장 가까운 먹이 찾기
+            const head = snake[0];
+            let closestFood = null;
+            let minDist = Infinity;
+
+            foods.forEach(food => {
+                const dist = Math.abs(food.x - head.x) + Math.abs(food.y - head.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestFood = food;
+                }
+            });
+
+            ctx.save();
+            // 원래 색상이 나오도록 설정
+            ctx.globalCompositeOperation = 'source-over';
+
+            foods.forEach(food => {
+                const screenX = food.x * gridSize - cameraX;
+                const screenY = food.y * gridSize - cameraY;
+
+                const isClosest = food === closestFood;
+
+                if (isClosest) {
+                    // 가장 가까운 과일만 펄스 효과로 살짝 커졌다 작아지는 애니메이션
+                    const pulse = Math.sin(Date.now() / 300) * 0.1 + 1;
+
+                    // 반짝이는 효과 (배경 원)
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath();
+                    ctx.arc(
+                        screenX + gridSize / 2,
+                        screenY + gridSize / 2,
+                        (gridSize / 2 + 4) * pulse,
+                        0,
+                        2 * Math.PI
+                    );
+                    ctx.fill();
+
+                    ctx.save();
+                    ctx.translate(screenX + gridSize / 2, screenY + gridSize / 2);
+                    ctx.scale(pulse, pulse);
+
+                    // 과일 이모지 그리기 (원래 색상)
+                    ctx.font = `${gridSize * 1.2}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(food.fruit, 0, 0);
+
+                    ctx.restore();
+                } else {
+                    // 다른 과일들도 원래 색상으로 표시
+                    ctx.font = `${gridSize * 1.2}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(food.fruit, screenX + gridSize / 2, screenY + gridSize / 2);
+                }
+            });
+
+            ctx.restore();
+        }
+
+        function drawBabySnakes() {
+            babySnakes.forEach(baby => {
+                // 아기 뱀 몸통 그리기
+                if (baby.body.length > 1) {
+                    ctx.strokeStyle = '#ffa502';
+                    ctx.lineWidth = gridSize - 8;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+
+                    ctx.beginPath();
+                    for (let i = 0; i < baby.body.length; i++) {
+                        const segment = baby.body[i];
+                        const screenX = segment.x * gridSize - cameraX + gridSize / 2;
+                        const screenY = segment.y * gridSize - cameraY + gridSize / 2;
+
+                        if (i === 0) {
+                            ctx.moveTo(screenX, screenY);
+                        } else {
+                            ctx.lineTo(screenX, screenY);
+                        }
+                    }
+                    ctx.stroke();
+
+                    // 몸통 세그먼트
+                    for (let i = 1; i < baby.body.length; i++) {
+                        const segment = baby.body[i];
+                        const screenX = segment.x * gridSize - cameraX + gridSize / 2;
+                        const screenY = segment.y * gridSize - cameraY + gridSize / 2;
+
+                        ctx.fillStyle = i % 2 === 0 ? '#ffa502' : '#ff8c00';
+                        ctx.beginPath();
+                        ctx.arc(screenX, screenY, gridSize / 2 - 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+
+                // 아기 뱀 머리 그리기
+                if (baby.body.length > 0) {
+                    const head = baby.body[0];
+                    const screenX = head.x * gridSize - cameraX + gridSize / 2;
+                    const screenY = head.y * gridSize - cameraY + gridSize / 2;
+
+                    let angle = Math.atan2(baby.dy, baby.dx);
+
+                    ctx.save();
+                    ctx.translate(screenX, screenY);
+                    ctx.rotate(angle);
+
+                    // 머리
+                    ctx.fillStyle = '#ffa502';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, gridSize / 2, gridSize / 2 - 2, 0, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // 눈
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(2, -2, 2, 0, 2 * Math.PI);
+                    ctx.arc(2, 2, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(2.5, -2, 1, 0, 2 * Math.PI);
+                    ctx.arc(2.5, 2, 1, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            });
+        }
+
+        function drawCursor() {
+            ctx.strokeStyle = 'rgba(255,107,107,0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 15, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(mouseX - 20, mouseY);
+            ctx.lineTo(mouseX - 5, mouseY);
+            ctx.moveTo(mouseX + 20, mouseY);
+            ctx.lineTo(mouseX + 5, mouseY);
+            ctx.moveTo(mouseX, mouseY - 20);
+            ctx.lineTo(mouseX, mouseY - 5);
+            ctx.moveTo(mouseX, mouseY + 20);
+            ctx.lineTo(mouseX, mouseY + 5);
+            ctx.stroke();
+        }
+
+        function moveSnake() {
+            const head = snake[0];
+
+            // 가장 가까운 먹이 찾기
+            let closestFood = null;
+            let minDist = Infinity;
+
+            foods.forEach(food => {
+                const dist = Math.abs(food.x - head.x) + Math.abs(food.y - head.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestFood = food;
+                }
+            });
+
+            // 가장 가까운 먹이가 있으면 그 방향으로 이동 방향 업데이트
+            if (closestFood) {
+                const targetDx = closestFood.x - head.x;
+                const targetDy = closestFood.y - head.y;
+
+                // 대각선 이동 포함
+                if (Math.abs(targetDx) > Math.abs(targetDy)) {
+                    dx = targetDx > 0 ? 1 : -1;
+                    dy = 0;
+                } else if (Math.abs(targetDy) > Math.abs(targetDx)) {
+                    dx = 0;
+                    dy = targetDy > 0 ? 1 : -1;
+                } else if (targetDx !== 0 || targetDy !== 0) {
+                    // 같으면 둘 다 이동
+                    dx = targetDx > 0 ? 1 : -1;
+                    dy = targetDy > 0 ? 1 : -1;
+                }
+            }
+
+            // 현재 방향으로 계속 이동
+            const newHead = { x: head.x + dx, y: head.y + dy };
+            snake.unshift(newHead);
+
+            // 먹이를 먹었는지 확인
+            let ateFood = false;
+            foods = foods.filter(food => {
+                if (newHead.x === food.x && newHead.y === food.y) {
+                    score += 10;
+                    ateFood = true;
+                    return false;
+                }
+                return true;
+            });
+
+            // 뱀이 계속 커지고, 30 이상일 때마다 아기 뱀 태어남
+            if (!ateFood) {
+                snake.pop();
+            }
+
+            // 30칸마다 아기 뱀 생성
+            if (snake.length > maxSnakeLength && (snake.length - maxSnakeLength) % 10 === 0) {
+                // 아기 뱀 생성 (초기 길이 5)
+                const babyBody = [];
+                for (let i = 0; i < 5 && snake.length > maxSnakeLength; i++) {
+                    const tail = snake.pop();
+                    babyBody.unshift(tail);
+                }
+
+                if (babyBody.length > 0) {
+                    const randomDir = Math.floor(Math.random() * 4);
+                    let babyDx = 0, babyDy = 0;
+                    if (randomDir === 0) { babyDx = 1; babyDy = 0; }
+                    else if (randomDir === 1) { babyDx = -1; babyDy = 0; }
+                    else if (randomDir === 2) { babyDx = 0; babyDy = 1; }
+                    else { babyDx = 0; babyDy = -1; }
+
+                    babySnakes.push({
+                        body: babyBody,
+                        dx: babyDx,
+                        dy: babyDy
+                    });
+                }
+            }
+
+            // 카메라를 뱀 머리에 맞춤
+            cameraX = newHead.x * gridSize - canvas.width / 2 + gridSize / 2;
+            cameraY = newHead.y * gridSize - canvas.height / 2 + gridSize / 2;
+        }
+
+        function moveBabySnakes() {
+            babySnakes.forEach(baby => {
+                if (baby.body.length === 0) return;
+
+                // 가장 가까운 먹이 찾기
+                const babyHead = baby.body[0];
+                let closestFood = null;
+                let minDist = Infinity;
+
+                foods.forEach(food => {
+                    const dist = Math.abs(food.x - babyHead.x) + Math.abs(food.y - babyHead.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestFood = food;
+                    }
+                });
+
+                // 먹이가 없거나 멀면 랜덤하게 먹이 생성 (20% 확률)
+                if (!closestFood || minDist > 30) {
+                    if (Math.random() < 0.02) {
+                        const offsetX = Math.floor((Math.random() - 0.5) * 40);
+                        const offsetY = Math.floor((Math.random() - 0.5) * 40);
+                        const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+                        foods.push({
+                            x: babyHead.x + offsetX,
+                            y: babyHead.y + offsetY,
+                            fruit: randomFruit
+                        });
+                    }
+                }
+
+                // 먹이 방향으로 이동
+                if (closestFood) {
+                    const targetDx = closestFood.x - babyHead.x;
+                    const targetDy = closestFood.y - babyHead.y;
+
+                    if (Math.abs(targetDx) > Math.abs(targetDy)) {
+                        baby.dx = targetDx > 0 ? 1 : -1;
+                        baby.dy = 0;
+                    } else if (Math.abs(targetDy) > Math.abs(targetDx)) {
+                        baby.dx = 0;
+                        baby.dy = targetDy > 0 ? 1 : -1;
+                    } else if (targetDx !== 0 || targetDy !== 0) {
+                        baby.dx = targetDx > 0 ? 1 : -1;
+                        baby.dy = targetDy > 0 ? 1 : -1;
+                    }
+                }
+
+                // 이동
+                const newHead = { x: babyHead.x + baby.dx, y: babyHead.y + baby.dy };
+                baby.body.unshift(newHead);
+
+                // 먹이 먹었는지 체크
+                let ateBabyFood = false;
+                foods = foods.filter(food => {
+                    if (newHead.x === food.x && newHead.y === food.y) {
+                        ateBabyFood = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                if (!ateBabyFood) {
+                    baby.body.pop();
+                }
+            });
+        }
+
+        function checkCollisions() {
+            const head = snake[0];
+
+            // 자기 몸과 충돌은 무시
+
+            // 아기 뱀과 충돌 체크 - 작은 뱀이 큰 뱀에게서 하나 뺏어감
+            for (let i = babySnakes.length - 1; i >= 0; i--) {
+                const baby = babySnakes[i];
+                if (baby.body.length === 0) continue;
+
+                // 모든 부분에서 충돌 체크
+                for (let segment of baby.body) {
+                    if (head.x === segment.x && head.y === segment.y) {
+                        if (snake.length < baby.body.length) {
+                            // 플레이어가 작으면 아기 뱀에게서 하나 뺏어감
+                            if (baby.body.length > 1) {
+                                const stolen = baby.body.pop();
+                                snake.push(stolen);
+                                score += 5;
+                            } else {
+                                // 아기 뱀 길이가 1이면 제거
+                                babySnakes.splice(i, 1);
+                                score += 20;
+                            }
+                        } else if (snake.length > baby.body.length) {
+                            // 아기 뱀이 작으면 플레이어에게서 하나 뺏어감
+                            if (snake.length > 1) {
+                                const stolen = snake.pop();
+                                baby.body.push(stolen);
+                                score -= 5;
+                            } else {
+                                // 플레이어 길이가 1이면 게임 오버
+                                endGame();
+                                return;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // 아기 뱀끼리 충돌 체크
+            for (let i = babySnakes.length - 1; i >= 0; i--) {
+                const baby1 = babySnakes[i];
+                if (!baby1 || baby1.body.length === 0) continue;
+
+                const baby1Head = baby1.body[0];
+
+                // 다른 아기 뱀과 충돌
+                for (let j = 0; j < babySnakes.length; j++) {
+                    if (i === j) continue;
+                    const baby2 = babySnakes[j];
+                    if (!baby2) continue;
+
+                    for (let segment of baby2.body) {
+                        if (baby1Head.x === segment.x && baby1Head.y === segment.y) {
+                            // 더 작은 뱀 제거
+                            if (baby1.body.length <= baby2.body.length) {
+                                babySnakes.splice(i, 1);
+                            } else {
+                                babySnakes.splice(j, 1);
+                                if (j < i) i--;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        function updateHUD() {
+            scoreElement.textContent = score;
+            lengthElement.textContent = snake.length;
+            stageElement.textContent = stages[currentStage].stage;
+            targetScoreElement.textContent = stages[currentStage].targetScore;
+            timerElement.textContent = Math.ceil(timeRemaining);
+        }
+
+        function nextStage() {
+            currentStage++;
+            timeRemaining = stages[currentStage].timeLimit;
+
+            // 스테이지 클리어 알림
+            const stageMessage = document.createElement('div');
+            stageMessage.style.position = 'fixed';
+            stageMessage.style.top = '50%';
+            stageMessage.style.left = '50%';
+            stageMessage.style.transform = 'translate(-50%, -50%)';
+            stageMessage.style.background = 'rgba(255,255,255,0.95)';
+            stageMessage.style.padding = '30px 60px';
+            stageMessage.style.borderRadius = '15px';
+            stageMessage.style.fontSize = '32px';
+            stageMessage.style.fontWeight = 'bold';
+            stageMessage.style.color = '#667eea';
+            stageMessage.style.zIndex = '1000';
+            stageMessage.textContent = `스테이지 ${stages[currentStage].stage} 시작!`;
+            document.body.appendChild(stageMessage);
+
+            setTimeout(() => {
+                document.body.removeChild(stageMessage);
+            }, 2000);
+        }
+
+        function endGame(reason = 'baby') {
+            isGameOver = true;
+            clearInterval(gameLoop);
+            finalScoreElement.textContent = score;
+
+            const gameOverMessage = gameOverElement.querySelector('p');
+            if (reason === 'timeout') {
+                gameOverMessage.textContent = '시간 초과! 목표 점수를 달성하지 못했습니다.';
+            } else if (reason === 'clear') {
+                gameOverMessage.textContent = '🎉 모든 스테이지 클리어!';
+            } else if (reason === 'self') {
+                gameOverMessage.textContent = '자기 몸에 부딪혔습니다!';
+            } else {
+                gameOverMessage.textContent = '길이가 1이 되었습니다!';
+            }
+
+            gameOverElement.classList.add('show');
+        }
+
+        function restartGame() {
+            snake = [{ x: 0, y: 0 }];
+            foods = [];
+            babySnakes = [];
+            score = 0;
+            currentStage = 0;
+            timeRemaining = stages[0].timeLimit;
+            lastTime = Date.now();
+            dx = 1;
+            dy = 0;
+            cameraX = 0;
+            cameraY = 0;
+            isGameOver = false;
+            gameOverElement.classList.remove('show');
+            clearInterval(gameLoop);
+            gameLoop = setInterval(drawGame, gameSpeed);
+        }
+
+        // 게임 시작
+        gameLoop = setInterval(drawGame, gameSpeed);
+    </script>
+</body>
+</html>

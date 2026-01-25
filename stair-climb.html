@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계단 올라가기 - Stair Climb</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 10px;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .floor .stat-value {
+            color: #00ff88;
+        }
+
+        .best .stat-value {
+            color: #ffd700;
+        }
+
+        canvas {
+            border: 3px solid #4a4a6a;
+            border-radius: 10px;
+        }
+
+        .instructions {
+            color: #888;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+
+        .game-over h2 {
+            color: #ff4444;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .game-over p {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .game-over .final-floor {
+            color: #00ff88;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .restart-btn:hover {
+            background: #00cc6a;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">🏠 다른 게임 하기</a>
+    <div class="game-container">
+        <h1>🏃 계단 올라가기</h1>
+        <div class="stats">
+            <div class="stat floor">
+                <div class="stat-label">현재 층</div>
+                <div class="stat-value" id="floor">0</div>
+            </div>
+            <div class="stat best">
+                <div class="stat-label">최고 기록</div>
+                <div class="stat-value" id="best">0</div>
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="500" height="700"></canvas>
+        <p class="instructions">⬅️➡️ 이동 | ⬆️ 또는 스페이스바 점프 | 장애물을 피해 계단을 올라가세요!</p>
+
+        <div class="game-over" id="gameOver">
+            <h2>추락! 💀</h2>
+            <p>도달한 층:</p>
+            <div class="final-floor" id="finalFloor">0</div>
+            <button class="restart-btn" onclick="restartGame()">다시 도전</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 게임 상태
+        let gameRunning = true;
+        let currentFloor = 0;
+        let bestFloor = parseInt(localStorage.getItem('stairBest') || '0');
+        let cameraY = 0;
+
+        // 플레이어
+        const player = {
+            x: canvas.width / 2 - 15,
+            y: canvas.height - 100,
+            width: 30,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: -14,
+            gravity: 0.5,
+            onGround: false,
+            direction: 1
+        };
+
+        // 계단 배열
+        let stairs = [];
+        const stairWidth = 100;
+        const stairHeight = 20;
+
+        // 장애물 배열
+        let obstacles = [];
+
+        // 키 상태
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            Space: false
+        };
+
+        // 키 이벤트
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.ArrowLeft = true;
+            if (e.key === 'ArrowRight') keys.ArrowRight = true;
+            if (e.key === 'ArrowUp') keys.ArrowUp = true;
+            if (e.key === ' ') keys.Space = true;
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.ArrowLeft = false;
+            if (e.key === 'ArrowRight') keys.ArrowRight = false;
+            if (e.key === 'ArrowUp') keys.ArrowUp = false;
+            if (e.key === ' ') keys.Space = false;
+        });
+
+        // 초기 계단 생성
+        function initStairs() {
+            stairs = [];
+            // 바닥
+            stairs.push({
+                x: 0,
+                y: canvas.height - 30,
+                width: canvas.width,
+                height: 30,
+                floor: 0,
+                color: '#8B4513'
+            });
+
+            // 계단들
+            let lastX = canvas.width / 2 - stairWidth / 2;
+            for (let i = 1; i <= 50; i++) {
+                // 좌우로 랜덤하게 배치
+                let newX = lastX + (Math.random() - 0.5) * 150;
+                newX = Math.max(20, Math.min(canvas.width - stairWidth - 20, newX));
+
+                stairs.push({
+                    x: newX,
+                    y: canvas.height - 30 - i * 80,
+                    width: stairWidth,
+                    height: stairHeight,
+                    floor: i,
+                    color: `hsl(${200 + i * 3}, 70%, ${40 + (i % 10) * 2}%)`
+                });
+
+                // 장애물 추가 (5층마다, 랜덤)
+                if (i > 3 && i % 4 === 0 && Math.random() > 0.3) {
+                    const obsX = Math.random() * (canvas.width - 40);
+                    obstacles.push({
+                        x: obsX,
+                        y: canvas.height - 30 - i * 80 - 50,
+                        width: 35,
+                        height: 35,
+                        baseY: canvas.height - 30 - i * 80 - 50,
+                        moveRange: 100,
+                        speed: 1 + Math.random() * 2,
+                        direction: Math.random() > 0.5 ? 1 : -1
+                    });
+                }
+
+                lastX = newX;
+            }
+        }
+
+        // 더 많은 계단 추가
+        function addMoreStairs() {
+            const lastStair = stairs[stairs.length - 1];
+            const startFloor = lastStair.floor + 1;
+            let lastX = lastStair.x;
+
+            for (let i = 0; i < 20; i++) {
+                const floor = startFloor + i;
+                let newX = lastX + (Math.random() - 0.5) * 150;
+                newX = Math.max(20, Math.min(canvas.width - stairWidth - 20, newX));
+
+                stairs.push({
+                    x: newX,
+                    y: canvas.height - 30 - floor * 80,
+                    width: stairWidth,
+                    height: stairHeight,
+                    floor: floor,
+                    color: `hsl(${200 + floor * 3}, 70%, ${40 + (floor % 10) * 2}%)`
+                });
+
+                // 장애물 추가
+                if (floor % 4 === 0 && Math.random() > 0.3) {
+                    const obsX = Math.random() * (canvas.width - 40);
+                    obstacles.push({
+                        x: obsX,
+                        y: canvas.height - 30 - floor * 80 - 50,
+                        width: 35,
+                        height: 35,
+                        baseY: canvas.height - 30 - floor * 80 - 50,
+                        moveRange: 100,
+                        speed: 1 + Math.random() * 2,
+                        direction: Math.random() > 0.5 ? 1 : -1
+                    });
+                }
+
+                lastX = newX;
+            }
+        }
+
+        // 충돌 감지
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // 계단 충돌 (위에서 떨어질 때만)
+        function checkStairCollision() {
+            player.onGround = false;
+
+            for (const stair of stairs) {
+                if (player.vy >= 0 &&
+                    player.x + player.width > stair.x &&
+                    player.x < stair.x + stair.width &&
+                    player.y + player.height >= stair.y &&
+                    player.y + player.height <= stair.y + stair.height + player.vy + 5) {
+
+                    player.y = stair.y - player.height;
+                    player.vy = 0;
+                    player.onGround = true;
+
+                    if (stair.floor > currentFloor) {
+                        currentFloor = stair.floor;
+                        updateUI();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 장애물 충돌
+        function checkObstacleCollision() {
+            for (const obs of obstacles) {
+                if (checkCollision(player, obs)) {
+                    gameOver();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 플레이어 그리기
+        function drawPlayer() {
+            const screenY = player.y + cameraY;
+
+            ctx.save();
+            ctx.translate(player.x + player.width / 2, screenY + player.height / 2);
+            ctx.scale(player.direction, 1);
+
+            // 몸통
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(-12, -8, 24, 25);
+
+            // 머리
+            ctx.fillStyle = '#FFDAB9';
+            ctx.beginPath();
+            ctx.arc(0, -15, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 눈
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(3, -16, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 다리 (달리는 애니메이션)
+            const legAngle = Math.sin(Date.now() / 100) * 0.5;
+            ctx.fillStyle = '#4a4a4a';
+
+            ctx.save();
+            ctx.translate(-5, 17);
+            ctx.rotate(player.onGround && (keys.ArrowLeft || keys.ArrowRight) ? legAngle : 0);
+            ctx.fillRect(-3, 0, 6, 12);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(5, 17);
+            ctx.rotate(player.onGround && (keys.ArrowLeft || keys.ArrowRight) ? -legAngle : 0);
+            ctx.fillRect(-3, 0, 6, 12);
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // 계단 그리기
+        function drawStairs() {
+            for (const stair of stairs) {
+                const screenY = stair.y + cameraY;
+
+                if (screenY > -50 && screenY < canvas.height + 50) {
+                    // 계단 본체
+                    ctx.fillStyle = stair.color;
+                    ctx.fillRect(stair.x, screenY, stair.width, stair.height);
+
+                    // 계단 하이라이트
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.fillRect(stair.x, screenY, stair.width, 5);
+
+                    // 층 번호
+                    if (stair.floor > 0) {
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(stair.floor + 'F', stair.x + stair.width / 2, screenY + 14);
+                    }
+                }
+            }
+        }
+
+        // 장애물 그리기
+        function drawObstacles() {
+            for (const obs of obstacles) {
+                const screenY = obs.y + cameraY;
+
+                if (screenY > -50 && screenY < canvas.height + 50) {
+                    // 가시 장애물
+                    ctx.fillStyle = '#ff4444';
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + obs.width / 2, screenY);
+                    ctx.lineTo(obs.x + obs.width, screenY + obs.height);
+                    ctx.lineTo(obs.x, screenY + obs.height);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 눈
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width / 2 - 5, screenY + 18, 4, 0, Math.PI * 2);
+                    ctx.arc(obs.x + obs.width / 2 + 5, screenY + 18, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width / 2 - 5, screenY + 18, 2, 0, Math.PI * 2);
+                    ctx.arc(obs.x + obs.width / 2 + 5, screenY + 18, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 배경 그리기
+        function drawBackground() {
+            // 그라데이션 배경
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            const hue = 220 + currentFloor * 2;
+            gradient.addColorStop(0, `hsl(${hue}, 50%, 15%)`);
+            gradient.addColorStop(1, `hsl(${hue}, 50%, 25%)`);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 별 (높이 올라갈수록 더 많이)
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < Math.min(currentFloor, 50); i++) {
+                const x = (i * 73) % canvas.width;
+                const y = (i * 97 + cameraY * 0.1) % canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 업데이트
+        function update() {
+            if (!gameRunning) return;
+
+            // 좌우 이동
+            if (keys.ArrowLeft) {
+                player.vx = -player.speed;
+                player.direction = -1;
+            } else if (keys.ArrowRight) {
+                player.vx = player.speed;
+                player.direction = 1;
+            } else {
+                player.vx = 0;
+            }
+
+            // 점프
+            if ((keys.ArrowUp || keys.Space) && player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+            }
+
+            // 중력
+            player.vy += player.gravity;
+
+            // 위치 업데이트
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // 좌우 경계
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+
+            // 계단 충돌
+            checkStairCollision();
+
+            // 장애물 이동
+            obstacles.forEach(obs => {
+                obs.x += obs.speed * obs.direction;
+                if (obs.x <= 0 || obs.x >= canvas.width - obs.width) {
+                    obs.direction *= -1;
+                }
+            });
+
+            // 장애물 충돌
+            checkObstacleCollision();
+
+            // 카메라 따라가기
+            const targetCameraY = -player.y + canvas.height * 0.6;
+            if (targetCameraY > cameraY) {
+                cameraY += (targetCameraY - cameraY) * 0.1;
+            }
+
+            // 계단 더 추가
+            const highestStair = stairs[stairs.length - 1];
+            if (player.y < highestStair.y + 500) {
+                addMoreStairs();
+            }
+
+            // 추락 체크 (화면 아래로 떨어지면)
+            if (player.y + cameraY > canvas.height + 100) {
+                gameOver();
+            }
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            document.getElementById('floor').textContent = currentFloor;
+            document.getElementById('best').textContent = bestFloor;
+        }
+
+        // 게임 오버
+        function gameOver() {
+            gameRunning = false;
+
+            if (currentFloor > bestFloor) {
+                bestFloor = currentFloor;
+                localStorage.setItem('stairBest', bestFloor.toString());
+            }
+
+            document.getElementById('finalFloor').textContent = currentFloor + '층';
+            document.getElementById('best').textContent = bestFloor;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        // 게임 재시작
+        function restartGame() {
+            gameRunning = true;
+            currentFloor = 0;
+            cameraY = 0;
+
+            player.x = canvas.width / 2 - 15;
+            player.y = canvas.height - 100;
+            player.vx = 0;
+            player.vy = 0;
+            player.onGround = false;
+
+            obstacles = [];
+            initStairs();
+
+            document.getElementById('gameOver').style.display = 'none';
+            updateUI();
+        }
+
+        // 그리기
+        function draw() {
+            drawBackground();
+            drawStairs();
+            drawObstacles();
+            drawPlayer();
+
+            // 층 표시 (화면 상단)
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(canvas.width / 2 - 50, 10, 100, 35);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentFloor + '층', canvas.width / 2, 35);
+        }
+
+        // 게임 루프
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 초기화 및 시작
+        initStairs();
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>

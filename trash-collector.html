@@ -146,7 +146,7 @@
             </div>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <p class="instructions">⬆️⬇️⬅️➡️ 방향키 또는 🖱️ 마우스로 이동 | 🏠 집에 가서 쓰레기를 내려놓으세요!</p>
+        <p class="instructions">⬆️⬇️⬅️➡️ 방향키 / 🖱️ 마우스 / 👆 터치로 이동 | 🏠 집에 가서 쓰레기를 내려놓으세요!</p>
 
         <div class="full-warning" id="fullWarning">
             🎒 가방이 꽉 찼어요! 집으로 가세요! 🏠
@@ -225,15 +225,49 @@
         // 마우스 이벤트
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
             mouseTarget = {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
             };
             useMouseControl = true;
         });
 
         canvas.addEventListener('mouseleave', () => {
             useMouseControl = false;
+        });
+
+        // 터치 이벤트 (모바일)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const touch = e.touches[0];
+            mouseTarget = {
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
+            };
+            useMouseControl = true;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const touch = e.touches[0];
+            mouseTarget = {
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
+            };
+            useMouseControl = true;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            // 터치가 끝나도 마지막 위치로 계속 이동
+            // useMouseControl = false; // 주석 처리하여 마지막 터치 위치로 이동 유지
         });
 
         // 쓰레기 생성

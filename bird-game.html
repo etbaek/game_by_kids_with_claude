@@ -149,6 +149,53 @@
             margin-top: 15px;
             font-size: 0.9rem;
         }
+
+        /* 모바일 터치 컨트롤 */
+        .touch-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        @media (max-width: 800px) {
+            .touch-controls { display: block; }
+            .instructions { display: none; }
+        }
+
+        .touch-pad {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+
+        .touch-btn {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .touch-btn:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .touch-btn.up { top: 0; left: 50px; }
+        .touch-btn.down { bottom: 0; left: 50px; }
+        .touch-btn.left { top: 50px; left: 0; }
+        .touch-btn.right { top: 50px; right: 0; }
     </style>
 </head>
 <body>
@@ -173,6 +220,16 @@
             <h2>게임 오버!</h2>
             <p>최종 점수: <span id="finalScore">0</span></p>
             <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+        </div>
+    </div>
+
+    <!-- 모바일 터치 컨트롤 -->
+    <div class="touch-controls">
+        <div class="touch-pad">
+            <div class="touch-btn up" id="btnUp">⬆️</div>
+            <div class="touch-btn down" id="btnDown">⬇️</div>
+            <div class="touch-btn left" id="btnLeft">⬅️</div>
+            <div class="touch-btn right" id="btnRight">➡️</div>
         </div>
     </div>
 
@@ -242,6 +299,41 @@
         canvas.addEventListener('mouseleave', () => {
             useMouseControl = false;
         });
+
+        // 모바일 터치 버튼 이벤트
+        function setupTouchButton(btnId, key) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+                useMouseControl = false;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+            btn.addEventListener('touchcancel', () => {
+                keys[key] = false;
+            });
+            // 마우스도 지원
+            btn.addEventListener('mousedown', () => {
+                keys[key] = true;
+                useMouseControl = false;
+            });
+            btn.addEventListener('mouseup', () => {
+                keys[key] = false;
+            });
+            btn.addEventListener('mouseleave', () => {
+                keys[key] = false;
+            });
+        }
+
+        setupTouchButton('btnUp', 'ArrowUp');
+        setupTouchButton('btnDown', 'ArrowDown');
+        setupTouchButton('btnLeft', 'ArrowLeft');
+        setupTouchButton('btnRight', 'ArrowRight');
 
         // 먹이 생성 - 두 종류
         function spawnFood() {

@@ -138,9 +138,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <div class="hud">
-        <div class="score">스테이지: <span id="stage">1</span></div>
-        <div class="score">점수: <span id="score">0</span> / <span id="targetScore">50</span></div>
-        <div class="length">시간: <span id="timer">60</span>초</div>
+        <div class="score">점수: <span id="score">0</span></div>
         <div class="length">길이: <span id="length">1</span></div>
     </div>
 
@@ -160,9 +158,6 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const lengthElement = document.getElementById('length');
-        const stageElement = document.getElementById('stage');
-        const targetScoreElement = document.getElementById('targetScore');
-        const timerElement = document.getElementById('timer');
         const gameOverElement = document.getElementById('gameOver');
         const finalScoreElement = document.getElementById('finalScore');
 
@@ -185,29 +180,17 @@
         let cameraX = 0;
         let cameraY = 0;
 
-        // 스테이지 설정
-        const stages = [
-            { stage: 1, targetScore: 50, timeLimit: 60 },
-            { stage: 2, targetScore: 120, timeLimit: 70 },
-            { stage: 3, targetScore: 200, timeLimit: 80 },
-            { stage: 4, targetScore: 300, timeLimit: 90 },
-            { stage: 5, targetScore: 450, timeLimit: 100 }
-        ];
-
         // 게임 상태
         let snake = [{ x: 0, y: 0 }];
-        let foods = []; // 먹이를 배열로 변경
-        let babySnakes = []; // 아기 뱀들 배열
+        let foods = [];
+        let babySnakes = [];
         let mouseX = canvas.width / 2;
         let mouseY = canvas.height / 2;
         let score = 0;
-        let currentStage = 0;
-        let timeRemaining = stages[0].timeLimit;
-        let lastTime = Date.now();
         let gameSpeed = 100;
         let gameLoop;
         let isGameOver = false;
-        let dx = 1; // 초기 이동 방향
+        let dx = 1;
         let dy = 0;
 
         // 마우스 위치 추적
@@ -228,29 +211,6 @@
 
         function drawGame() {
             if (isGameOver) return;
-
-            // 시간 업데이트
-            const currentTime = Date.now();
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-            timeRemaining -= deltaTime;
-
-            // 시간 초과 체크
-            if (timeRemaining <= 0) {
-                endGame('timeout');
-                return;
-            }
-
-            // 스테이지 클리어 체크
-            if (score >= stages[currentStage].targetScore) {
-                if (currentStage < stages.length - 1) {
-                    nextStage();
-                } else {
-                    // 마지막 스테이지 클리어
-                    endGame('clear');
-                    return;
-                }
-            }
 
             moveSnake();
             moveBabySnakes();
@@ -819,34 +779,6 @@
         function updateHUD() {
             scoreElement.textContent = score;
             lengthElement.textContent = snake.length;
-            stageElement.textContent = stages[currentStage].stage;
-            targetScoreElement.textContent = stages[currentStage].targetScore;
-            timerElement.textContent = Math.ceil(timeRemaining);
-        }
-
-        function nextStage() {
-            currentStage++;
-            timeRemaining = stages[currentStage].timeLimit;
-
-            // 스테이지 클리어 알림
-            const stageMessage = document.createElement('div');
-            stageMessage.style.position = 'fixed';
-            stageMessage.style.top = '50%';
-            stageMessage.style.left = '50%';
-            stageMessage.style.transform = 'translate(-50%, -50%)';
-            stageMessage.style.background = 'rgba(255,255,255,0.95)';
-            stageMessage.style.padding = '30px 60px';
-            stageMessage.style.borderRadius = '15px';
-            stageMessage.style.fontSize = '32px';
-            stageMessage.style.fontWeight = 'bold';
-            stageMessage.style.color = '#667eea';
-            stageMessage.style.zIndex = '1000';
-            stageMessage.textContent = `스테이지 ${stages[currentStage].stage} 시작!`;
-            document.body.appendChild(stageMessage);
-
-            setTimeout(() => {
-                document.body.removeChild(stageMessage);
-            }, 2000);
         }
 
         function endGame(reason = 'baby') {
@@ -855,11 +787,7 @@
             finalScoreElement.textContent = score;
 
             const gameOverMessage = gameOverElement.querySelector('p');
-            if (reason === 'timeout') {
-                gameOverMessage.textContent = '시간 초과! 목표 점수를 달성하지 못했습니다.';
-            } else if (reason === 'clear') {
-                gameOverMessage.textContent = '🎉 모든 스테이지 클리어!';
-            } else if (reason === 'self') {
+            if (reason === 'self') {
                 gameOverMessage.textContent = '자기 몸에 부딪혔습니다!';
             } else {
                 gameOverMessage.textContent = '길이가 1이 되었습니다!';
@@ -873,9 +801,6 @@
             foods = [];
             babySnakes = [];
             score = 0;
-            currentStage = 0;
-            timeRemaining = stages[0].timeLimit;
-            lastTime = Date.now();
             dx = 1;
             dy = 0;
             cameraX = 0;

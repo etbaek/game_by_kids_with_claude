@@ -143,7 +143,7 @@
     </div>
 
     <div class="controls">
-        마우스를 클릭하면 먹이가 생성됩니다
+        화면을 클릭/터치하면 먹이가 생성됩니다
     </div>
 
     <div class="game-over" id="gameOver">
@@ -207,6 +207,26 @@
                 const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
                 foods.push({ x: worldX, y: worldY, fruit: randomFruit });
             }
+        });
+
+        // 터치로 먹이 생성 (모바일)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!isGameOver) {
+                const touch = e.touches[0];
+                const worldX = Math.floor((touch.clientX + cameraX) / gridSize);
+                const worldY = Math.floor((touch.clientY + cameraY) / gridSize);
+                const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
+                foods.push({ x: worldX, y: worldY, fruit: randomFruit });
+            }
+        });
+
+        // 터치로 마우스 위치 추적 (모바일)
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            mouseX = touch.clientX;
+            mouseY = touch.clientY;
         });
 
         function drawGame() {

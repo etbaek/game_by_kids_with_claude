@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>스키 게임 - Ski Game</title>
     <style>
         * {
@@ -19,6 +19,8 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .game-container {
@@ -63,6 +65,8 @@
         canvas {
             border-radius: 10px;
             box-shadow: 0 0 30px rgba(100, 200, 255, 0.3);
+            max-width: 100%;
+            height: auto;
         }
 
         .controls {
@@ -82,6 +86,29 @@
             transition: transform 0.1s;
             user-select: none;
             color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 500px) {
+            h1 { font-size: 1.5rem; }
+            .stats { gap: 10px; }
+            .stat { padding: 5px 12px; }
+            .stat-label { font-size: 0.6rem; }
+            .stat-value { font-size: 1rem; }
+            .control-btn {
+                width: 120px;
+                height: 70px;
+                font-size: 2rem;
+            }
+            .controls { gap: 20px; }
+            .instructions { font-size: 0.75rem; }
+            .back-btn {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+                top: 10px;
+                left: 10px;
+            }
         }
 
         .control-btn:active {
@@ -236,6 +263,21 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // 모바일 캔버스 크기 조정
+        function resizeCanvas() {
+            const maxWidth = Math.min(400, window.innerWidth - 30);
+            const scale = maxWidth / 400;
+            canvas.style.width = maxWidth + 'px';
+            canvas.style.height = (550 * scale) + 'px';
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 터치 스크롤 방지
+        document.addEventListener('touchmove', function(e) {
+            if (e.target === canvas) e.preventDefault();
+        }, { passive: false });
 
         // 게임 상태
         let gameRunning = false;

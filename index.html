@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Milkyway Games</title>
     <style>
         * {
@@ -16,6 +16,7 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 40px 20px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         h1 {
@@ -39,6 +40,36 @@
             gap: 25px;
             max-width: 1200px;
             margin: 0 auto;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 15px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .subtitle {
+                font-size: 0.95rem;
+                margin-bottom: 25px;
+            }
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .game-card {
+                height: 150px;
+            }
+            .game-icon {
+                font-size: 3rem !important;
+            }
+            .game-title {
+                font-size: 1.2rem !important;
+            }
+            .game-desc {
+                font-size: 0.8rem !important;
+            }
         }
 
         .game-card {

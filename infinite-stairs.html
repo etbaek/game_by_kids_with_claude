@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>무한의 계단 - Infinite Stairs</title>
     <style>
         * {
@@ -19,6 +19,21 @@
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas { max-width: 100%; height: auto; }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.5rem; }
+            .stats { gap: 15px; }
+            .stat { padding: 8px 15px; }
+            .stat-value { font-size: 1.4rem; }
+            .control-btn { width: 120px; height: 80px; font-size: 2.5rem; }
+            .controls { gap: 30px; margin-top: 20px; }
+            .instructions { font-size: 0.75rem; }
+            .back-btn { padding: 8px 12px; font-size: 0.75rem; top: 10px; left: 10px; }
         }
 
         .game-container {

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>계단 & 구조 - Stair Rescue</title>
     <style>
         * {
@@ -19,6 +19,21 @@
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas { max-width: 100%; height: auto; }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.4rem; }
+            .stats { gap: 10px; }
+            .stat { padding: 5px 12px; }
+            .stat-value { font-size: 1rem; }
+            .control-btn { width: 100px; height: 65px; font-size: 1.8rem; }
+            .controls { gap: 20px; }
+            .instructions { font-size: 0.7rem; }
+            .back-btn { padding: 8px 12px; font-size: 0.75rem; top: 10px; left: 10px; }
         }
 
         .game-container {

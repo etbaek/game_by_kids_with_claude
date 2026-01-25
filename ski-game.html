@@ -236,7 +236,7 @@
             <button class="control-btn right-btn" id="rightBtn">➡️</button>
         </div>
 
-        <p class="instructions">⬅️ ➡️ 로 이동 | 🌲🪨 피하기 | ⭐ +50점 | ❄️ 속도 감소!</p>
+        <p class="instructions">⬅️ ➡️ 또는 👆 드래그로 이동 | 🌲🪨 피하기 | ⭐ +50점 | ❄️ 속도 감소!</p>
 
         <div class="start-screen" id="startScreen">
             <h2>⛷️ 스키 게임</h2>
@@ -893,6 +893,40 @@
         leftBtn.addEventListener('touchend', () => keys.left = false);
         rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
         rightBtn.addEventListener('touchend', () => keys.right = false);
+
+        // 캔버스 터치 드래그로 이동 (모바일)
+        let lastTouchX = null;
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            lastTouchX = touch.clientX;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (lastTouchX === null) return;
+
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - lastTouchX;
+
+            // 드래그 방향에 따라 이동
+            if (deltaX < -3) {
+                keys.left = true;
+                keys.right = false;
+            } else if (deltaX > 3) {
+                keys.right = true;
+                keys.left = false;
+            }
+
+            lastTouchX = touch.clientX;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            lastTouchX = null;
+            keys.left = false;
+            keys.right = false;
+        });
 
         // 초기화
         initSnowflakes();

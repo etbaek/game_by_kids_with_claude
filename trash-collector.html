@@ -90,23 +90,24 @@
 
         .full-warning {
             position: absolute;
-            top: 50%;
+            bottom: 10px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 100, 0, 0.9);
-            padding: 20px 40px;
-            border-radius: 15px;
+            transform: translateX(-50%);
+            background: rgba(255, 100, 0, 0.85);
+            padding: 8px 20px;
+            border-radius: 20px;
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 0.9rem;
             font-weight: bold;
             display: none;
             animation: pulse 0.5s ease-in-out infinite alternate;
             pointer-events: none;
+            white-space: nowrap;
         }
 
         @keyframes pulse {
-            from { transform: translate(-50%, -50%) scale(1); }
-            to { transform: translate(-50%, -50%) scale(1.05); }
+            from { transform: translateX(-50%) scale(1); }
+            to { transform: translateX(-50%) scale(1.03); }
         }
 
         .back-btn {

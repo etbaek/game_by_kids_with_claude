@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zombie Survival</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 25px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            border: 2px solid #444;
+        }
+
+        .stat-box.health {
+            border-color: #ef4444;
+        }
+
+        .stat-box.wave {
+            border-color: #8b5cf6;
+        }
+
+        .stat-box.kills {
+            border-color: #22c55e;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .joystick-area {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .attack-btn {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border-radius: 50%;
+            border: 3px solid #fca5a5;
+            color: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .attack-btn:active {
+            transform: scale(0.9);
+            background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ef4444;
+        }
+
+        .game-over-stats {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .wave-announce {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #8b5cf6;
+            text-shadow: 0 0 30px #8b5cf6;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+        }
+
+        .wave-announce.show {
+            animation: waveAnnounce 2s ease-out forwards;
+        }
+
+        @keyframes waveAnnounce {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 250;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .start-title {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #ef4444;
+        }
+
+        .start-subtitle {
+            font-size: 24px;
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .start-zombie {
+            font-size: 100px;
+            margin-bottom: 30px;
+            animation: zombieFloat 2s infinite ease-in-out;
+        }
+
+        @keyframes zombieFloat {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .start-btn {
+            padding: 20px 50px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .start-instructions {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        @media (min-width: 800px) {
+            .mobile-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box health">❤️ <span id="health">100</span></div>
+        <div class="stat-box wave">🌊 웨이브 <span id="wave">1</span></div>
+        <div class="stat-box kills">💀 <span id="kills">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="mobile-controls">
+        <div class="joystick-area" id="joystick">
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        <button class="attack-btn" id="attackBtn">⚔️</button>
+    </div>
+
+    <div class="wave-announce" id="waveAnnounce">웨이브 1</div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="start-title">ZOMBIE SURVIVAL</div>
+        <div class="start-subtitle">좀비로부터 살아남아라!</div>
+        <div class="start-zombie">🧟</div>
+        <button class="start-btn" onclick="startGame()">게임 시작</button>
+        <div class="start-instructions">
+            PC: 방향키 이동, 스페이스바 공격<br>
+            모바일: 조이스틱 이동, 버튼 공격
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-title">GAME OVER</div>
+        <div class="game-over-stats">
+            <div>웨이브: <span id="finalWave">1</span></div>
+            <div>처치: <span id="finalKills">0</span>마리</div>
+        </div>
+        <button class="restart-btn" onclick="restartGame()">다시 도전</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let gameRunning = false;
+        let wave = 1;
+        let kills = 0;
+        let waveZombiesRemaining = 0;
+        let spawnTimer = 0;
+
+        // Player
+        const player = {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 50,
+            speed: 5,
+            health: 100,
+            maxHealth: 100,
+            attacking: false,
+            attackCooldown: 0,
+            attackRange: 80,
+            attackDamage: 34,
+            facingAngle: 0,
+            invincible: 0
+        };
+
+        // Zombies
+        let zombies = [];
+
+        // Effects
+        let effects = [];
+
+        // Input
+        const keys = {};
+        let joystickActive = false;
+        let joystickDir = { x: 0, y: 0 };
+
+        // Keyboard controls
+        document.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && gameRunning) {
+                attack();
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Joystick controls
+        const joystick = document.getElementById('joystick');
+        const joystickKnob = document.getElementById('joystickKnob');
+
+        function handleJoystick(e) {
+            e.preventDefault();
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const touch = e.touches ? e.touches[0] : e;
+
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+            const maxDist = rect.width / 2 - 25;
+
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+
+            joystickKnob.style.left = `calc(50% + ${dx}px)`;
+            joystickKnob.style.top = `calc(50% + ${dy}px)`;
+
+            joystickDir.x = dx / maxDist;
+            joystickDir.y = dy / maxDist;
+            joystickActive = true;
+        }
+
+        function resetJoystick() {
+            joystickKnob.style.left = '50%';
+            joystickKnob.style.top = '50%';
+            joystickDir = { x: 0, y: 0 };
+            joystickActive = false;
+        }
+
+        joystick.addEventListener('touchstart', handleJoystick);
+        joystick.addEventListener('touchmove', handleJoystick);
+        joystick.addEventListener('touchend', resetJoystick);
+
+        // Attack button
+        document.getElementById('attackBtn').addEventListener('touchstart', e => {
+            e.preventDefault();
+            attack();
+        });
+
+        function attack() {
+            if (player.attackCooldown > 0) return;
+
+            player.attacking = true;
+            player.attackCooldown = 20;
+
+            // Check for zombie hits
+            zombies.forEach(zombie => {
+                const dx = zombie.x - player.x;
+                const dy = zombie.y - player.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < player.attackRange) {
+                    const angleDiff = Math.abs(Math.atan2(dy, dx) - player.facingAngle);
+                    if (angleDiff < Math.PI / 2 || angleDiff > Math.PI * 1.5) {
+                        zombie.health -= player.attackDamage;
+                        zombie.knockback = 15;
+                        zombie.knockbackAngle = Math.atan2(dy, dx);
+
+                        effects.push({
+                            type: 'hit',
+                            x: zombie.x,
+                            y: zombie.y,
+                            life: 10
+                        });
+                    }
+                }
+            });
+
+            // Attack effect
+            effects.push({
+                type: 'slash',
+                x: player.x + Math.cos(player.facingAngle) * 40,
+                y: player.y + Math.sin(player.facingAngle) * 40,
+                angle: player.facingAngle,
+                life: 8
+            });
+
+            setTimeout(() => player.attacking = false, 150);
+        }
+
+        function spawnZombie() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+
+            switch (side) {
+                case 0: x = Math.random() * canvas.width; y = -50; break;
+                case 1: x = canvas.width + 50; y = Math.random() * canvas.height; break;
+                case 2: x = Math.random() * canvas.width; y = canvas.height + 50; break;
+                case 3: x = -50; y = Math.random() * canvas.height; break;
+            }
+
+            const speedBonus = Math.min(wave * 0.1, 1.5);
+            const healthBonus = Math.min(wave * 10, 100);
+
+            zombies.push({
+                x: x,
+                y: y,
+                width: 45,
+                height: 45,
+                speed: 1.5 + Math.random() * 0.5 + speedBonus,
+                health: 50 + healthBonus,
+                maxHealth: 50 + healthBonus,
+                damage: 10 + Math.floor(wave / 2) * 5,
+                attackCooldown: 0,
+                knockback: 0,
+                knockbackAngle: 0
+            });
+        }
+
+        function startWave() {
+            waveZombiesRemaining = 5 + wave * 3;
+            spawnTimer = 0;
+
+            const announce = document.getElementById('waveAnnounce');
+            announce.textContent = `웨이브 ${wave}`;
+            announce.classList.add('show');
+            setTimeout(() => announce.classList.remove('show'), 2000);
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Player movement
+            let dx = 0, dy = 0;
+
+            if (joystickActive) {
+                dx = joystickDir.x;
+                dy = joystickDir.y;
+            } else {
+                if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+                if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+                if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+                if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+            }
+
+            if (dx !== 0 || dy !== 0) {
+                const len = Math.hypot(dx, dy);
+                dx /= len;
+                dy /= len;
+                player.x += dx * player.speed;
+                player.y += dy * player.speed;
+                player.facingAngle = Math.atan2(dy, dx);
+            }
+
+            // Keep player in bounds
+            player.x = Math.max(25, Math.min(canvas.width - 25, player.x));
+            player.y = Math.max(25, Math.min(canvas.height - 25, player.y));
+
+            // Cooldowns
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.invincible > 0) player.invincible--;
+
+            // Spawn zombies
+            if (waveZombiesRemaining > 0) {
+                spawnTimer++;
+                if (spawnTimer >= 60) {
+                    spawnZombie();
+                    waveZombiesRemaining--;
+                    spawnTimer = 0;
+                }
+            }
+
+            // Update zombies
+            zombies.forEach(zombie => {
+                if (zombie.knockback > 0) {
+                    zombie.x += Math.cos(zombie.knockbackAngle) * zombie.knockback;
+                    zombie.y += Math.sin(zombie.knockbackAngle) * zombie.knockback;
+                    zombie.knockback *= 0.8;
+                    if (zombie.knockback < 0.5) zombie.knockback = 0;
+                } else {
+                    const dx = player.x - zombie.x;
+                    const dy = player.y - zombie.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist > 30) {
+                        zombie.x += (dx / dist) * zombie.speed;
+                        zombie.y += (dy / dist) * zombie.speed;
+                    } else if (zombie.attackCooldown <= 0 && player.invincible <= 0) {
+                        player.health -= zombie.damage;
+                        player.invincible = 30;
+                        zombie.attackCooldown = 60;
+
+                        effects.push({
+                            type: 'damage',
+                            x: player.x,
+                            y: player.y,
+                            life: 15
+                        });
+
+                        if (player.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+
+                if (zombie.attackCooldown > 0) zombie.attackCooldown--;
+            });
+
+            // Remove dead zombies
+            zombies = zombies.filter(zombie => {
+                if (zombie.health <= 0) {
+                    kills++;
+                    effects.push({
+                        type: 'death',
+                        x: zombie.x,
+                        y: zombie.y,
+                        life: 20
+                    });
+                    return false;
+                }
+                return true;
+            });
+
+            // Check wave complete
+            if (waveZombiesRemaining <= 0 && zombies.length === 0) {
+                wave++;
+                startWave();
+            }
+
+            // Update effects
+            effects = effects.filter(e => {
+                e.life--;
+                return e.life > 0;
+            });
+
+            updateUI();
+        }
+
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#2d2d2d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid pattern
+            ctx.strokeStyle = '#3d3d3d';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw effects (behind)
+            effects.filter(e => e.type === 'death').forEach(e => {
+                ctx.font = `${20 + (20 - e.life)}px Arial`;
+                ctx.fillStyle = `rgba(100, 200, 100, ${e.life / 20})`;
+                ctx.textAlign = 'center';
+                ctx.fillText('💀', e.x, e.y);
+            });
+
+            // Draw zombies
+            zombies.forEach(zombie => {
+                // Shadow
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(zombie.x, zombie.y + 20, 20, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Zombie
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🧟', zombie.x, zombie.y);
+
+                // Health bar
+                if (zombie.health < zombie.maxHealth) {
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(zombie.x - 20, zombie.y - 35, 40, 6);
+                    ctx.fillStyle = '#22c55e';
+                    ctx.fillRect(zombie.x - 20, zombie.y - 35, 40 * (zombie.health / zombie.maxHealth), 6);
+                }
+            });
+
+            // Draw player
+            ctx.save();
+
+            // Flash when invincible
+            if (player.invincible > 0 && Math.floor(player.invincible / 3) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(player.x, player.y + 20, 22, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Player
+            ctx.font = '45px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Flip based on facing direction
+            if (Math.cos(player.facingAngle) < 0) {
+                ctx.scale(-1, 1);
+                ctx.fillText('🧑', -player.x, player.y);
+            } else {
+                ctx.fillText('🧑', player.x, player.y);
+            }
+
+            ctx.restore();
+
+            // Draw attack effects
+            effects.filter(e => e.type === 'slash').forEach(e => {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                ctx.rotate(e.angle);
+                ctx.font = '30px Arial';
+                ctx.globalAlpha = e.life / 8;
+                ctx.fillText('⚔️', 0, 0);
+                ctx.restore();
+            });
+
+            effects.filter(e => e.type === 'hit').forEach(e => {
+                ctx.font = '25px Arial';
+                ctx.fillStyle = `rgba(255, 100, 100, ${e.life / 10})`;
+                ctx.textAlign = 'center';
+                ctx.fillText('💥', e.x, e.y - (10 - e.life) * 2);
+            });
+
+            effects.filter(e => e.type === 'damage').forEach(e => {
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💔', e.x, e.y - (15 - e.life) * 3);
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('health').textContent = Math.max(0, player.health);
+            document.getElementById('wave').textContent = wave;
+            document.getElementById('kills').textContent = kills;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalWave').textContent = wave;
+            document.getElementById('finalKills').textContent = kills;
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            initGame();
+        }
+
+        function initGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.health = player.maxHealth;
+            player.attackCooldown = 0;
+            player.invincible = 0;
+
+            zombies = [];
+            effects = [];
+            wave = 1;
+            kills = 0;
+
+            gameRunning = true;
+            startWave();
+            updateUI();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

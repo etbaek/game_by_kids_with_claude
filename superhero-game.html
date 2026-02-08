@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Hero</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 25px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            border: 2px solid;
+        }
+
+        .stat-box.health { border-color: #ef4444; }
+        .stat-box.energy { border-color: #3b82f6; }
+        .stat-box.score { border-color: #fbbf24; }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .joystick-area {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .punch-btn {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border-color: #fca5a5;
+        }
+
+        .beam-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-color: #93c5fd;
+        }
+
+        .super-btn {
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            border-color: #fde68a;
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.4;
+        }
+
+        .start-screen, .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide, .game-over-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 48px;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #fbbf24;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .hero-select {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 400px;
+        }
+
+        .hero-option {
+            width: 80px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid transparent;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .hero-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-option.selected {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.2);
+        }
+
+        .hero-option .icon {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+
+        .hero-option .name {
+            font-size: 12px;
+            color: white;
+        }
+
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+
+        .game-over-stats {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .combo-display {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            color: #fbbf24;
+            text-shadow: 0 0 20px #fbbf24;
+            opacity: 0;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .combo-display.show {
+            animation: comboPop 0.5s ease-out forwards;
+        }
+
+        @keyframes comboPop {
+            0% { opacity: 1; transform: translateX(-50%) scale(1.5); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1); }
+        }
+
+        @media (min-width: 800px) {
+            .mobile-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box health">❤️ <span id="health">100</span></div>
+        <div class="stat-box energy">⚡ <span id="energy">100</span></div>
+        <div class="stat-box score">⭐ <span id="score">0</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="mobile-controls">
+        <div class="joystick-area" id="joystick">
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        <div class="action-buttons">
+            <button class="action-btn super-btn" id="superBtn">💥</button>
+            <button class="action-btn beam-btn" id="beamBtn">🔵</button>
+            <button class="action-btn punch-btn" id="punchBtn">👊</button>
+        </div>
+    </div>
+
+    <div class="combo-display" id="comboDisplay">COMBO x3!</div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">SUPER HERO</div>
+        <div class="subtitle">악당을 물리쳐라!</div>
+        <div class="hero-select" id="heroSelect">
+            <div class="hero-option selected" data-hero="0">
+                <div class="icon">🦸</div>
+                <div class="name">슈퍼맨</div>
+            </div>
+            <div class="hero-option" data-hero="1">
+                <div class="icon">🦸‍♀️</div>
+                <div class="name">슈퍼우먼</div>
+            </div>
+            <div class="hero-option" data-hero="2">
+                <div class="icon">🥷</div>
+                <div class="name">닌자</div>
+            </div>
+            <div class="hero-option" data-hero="3">
+                <div class="icon">🧙</div>
+                <div class="name">마법사</div>
+            </div>
+        </div>
+        <button class="start-btn" onclick="startGame()">출동!</button>
+        <div class="instructions">
+            PC: 방향키 이동, Z 펀치, X 빔, C 필살기<br>
+            모바일: 조이스틱 + 버튼
+        </div>
+    </div>
+
+    <div class="game-over-screen hide" id="gameOverScreen">
+        <div class="game-over-title">GAME OVER</div>
+        <div class="game-over-stats">
+            <div>점수: <span id="finalScore">0</span></div>
+            <div>처치: <span id="finalKills">0</span></div>
+        </div>
+        <button class="start-btn" onclick="restartGame()">다시 도전</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Heroes
+        const heroes = [
+            { id: 0, name: '슈퍼맨', icon: '🦸', beamIcon: '💫', superIcon: '☀️', color: '#ef4444', beamColor: '#fbbf24' },
+            { id: 1, name: '슈퍼우먼', icon: '🦸‍♀️', beamIcon: '💖', superIcon: '💝', color: '#ec4899', beamColor: '#f472b6' },
+            { id: 2, name: '닌자', icon: '🥷', beamIcon: '🌟', superIcon: '⚔️', color: '#6366f1', beamColor: '#818cf8' },
+            { id: 3, name: '마법사', icon: '🧙', beamIcon: '✨', superIcon: '🔮', color: '#8b5cf6', beamColor: '#a78bfa' }
+        ];
+
+        // Villains
+        const villainTypes = [
+            { icon: '👿', health: 30, speed: 2, damage: 10, score: 100 },
+            { icon: '👹', health: 60, speed: 1.5, damage: 15, score: 200 },
+            { icon: '🤖', health: 100, speed: 1, damage: 20, score: 300 },
+            { icon: '👾', health: 40, speed: 3, damage: 8, score: 150 },
+            { icon: '🦹', health: 150, speed: 1.2, damage: 25, score: 500 }
+        ];
+
+        let selectedHero = 0;
+        let gameRunning = false;
+
+        // Player
+        const player = {
+            x: 0, y: 0,
+            width: 60, height: 60,
+            speed: 6,
+            health: 100, maxHealth: 100,
+            energy: 100, maxEnergy: 100,
+            facingRight: true,
+            attacking: false,
+            attackCooldown: 0,
+            invincible: 0,
+            combo: 0,
+            comboTimer: 0
+        };
+
+        let villains = [];
+        let projectiles = [];
+        let effects = [];
+        let score = 0;
+        let kills = 0;
+        let spawnTimer = 0;
+        let difficulty = 1;
+
+        // Input
+        const keys = {};
+        let joystickDir = { x: 0, y: 0 };
+        let joystickActive = false;
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (!gameRunning) return;
+            if (e.code === 'KeyZ') punch();
+            if (e.code === 'KeyX') beam();
+            if (e.code === 'KeyC') superAttack();
+        });
+        document.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Hero select
+        document.querySelectorAll('.hero-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.hero-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedHero = parseInt(opt.dataset.hero);
+            });
+        });
+
+        // Joystick
+        const joystick = document.getElementById('joystick');
+        const joystickKnob = document.getElementById('joystickKnob');
+
+        function handleJoystick(e) {
+            e.preventDefault();
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const touch = e.touches ? e.touches[0] : e;
+
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+            const maxDist = rect.width / 2 - 25;
+
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+
+            joystickKnob.style.left = `calc(50% + ${dx}px)`;
+            joystickKnob.style.top = `calc(50% + ${dy}px)`;
+            joystickDir = { x: dx / maxDist, y: dy / maxDist };
+            joystickActive = true;
+        }
+
+        function resetJoystick() {
+            joystickKnob.style.left = '50%';
+            joystickKnob.style.top = '50%';
+            joystickDir = { x: 0, y: 0 };
+            joystickActive = false;
+        }
+
+        joystick.addEventListener('touchstart', handleJoystick);
+        joystick.addEventListener('touchmove', handleJoystick);
+        joystick.addEventListener('touchend', resetJoystick);
+
+        // Action buttons
+        document.getElementById('punchBtn').addEventListener('touchstart', e => { e.preventDefault(); punch(); });
+        document.getElementById('beamBtn').addEventListener('touchstart', e => { e.preventDefault(); beam(); });
+        document.getElementById('superBtn').addEventListener('touchstart', e => { e.preventDefault(); superAttack(); });
+
+        function punch() {
+            if (player.attackCooldown > 0) return;
+            player.attacking = true;
+            player.attackCooldown = 15;
+
+            const punchX = player.x + (player.facingRight ? 50 : -50);
+
+            effects.push({
+                type: 'punch',
+                x: punchX,
+                y: player.y,
+                life: 10
+            });
+
+            villains.forEach(v => {
+                const dist = Math.hypot(v.x - punchX, v.y - player.y);
+                if (dist < 60) {
+                    hitVillain(v, 25);
+                }
+            });
+
+            setTimeout(() => player.attacking = false, 100);
+        }
+
+        function beam() {
+            if (player.energy < 20 || player.attackCooldown > 0) return;
+            player.energy -= 20;
+            player.attackCooldown = 20;
+
+            const hero = heroes[selectedHero];
+            projectiles.push({
+                x: player.x + (player.facingRight ? 40 : -40),
+                y: player.y,
+                vx: player.facingRight ? 12 : -12,
+                vy: 0,
+                damage: 35,
+                icon: hero.beamIcon,
+                size: 30,
+                life: 100
+            });
+        }
+
+        function superAttack() {
+            if (player.energy < 50) return;
+            player.energy -= 50;
+            player.invincible = 60;
+
+            const hero = heroes[selectedHero];
+
+            // Hit all nearby villains
+            villains.forEach(v => {
+                const dist = Math.hypot(v.x - player.x, v.y - player.y);
+                if (dist < 200) {
+                    hitVillain(v, 80);
+                }
+            });
+
+            effects.push({
+                type: 'super',
+                x: player.x,
+                y: player.y,
+                icon: hero.superIcon,
+                life: 30
+            });
+        }
+
+        function hitVillain(villain, damage) {
+            villain.health -= damage;
+            villain.knockback = 20;
+            villain.knockbackDir = player.facingRight ? 1 : -1;
+
+            player.combo++;
+            player.comboTimer = 120;
+
+            if (player.combo > 2) {
+                showCombo(player.combo);
+            }
+
+            effects.push({
+                type: 'hit',
+                x: villain.x,
+                y: villain.y,
+                life: 15
+            });
+        }
+
+        function showCombo(count) {
+            const display = document.getElementById('comboDisplay');
+            display.textContent = `COMBO x${count}!`;
+            display.classList.remove('show');
+            void display.offsetWidth;
+            display.classList.add('show');
+        }
+
+        function spawnVillain() {
+            const side = Math.random() < 0.5 ? -1 : 1;
+            const typeIndex = Math.min(Math.floor(Math.random() * (1 + difficulty / 3)), villainTypes.length - 1);
+            const type = villainTypes[typeIndex];
+
+            villains.push({
+                x: side < 0 ? -50 : canvas.width + 50,
+                y: canvas.height / 2 + (Math.random() - 0.5) * 300,
+                width: 50,
+                height: 50,
+                ...type,
+                maxHealth: type.health,
+                knockback: 0,
+                knockbackDir: 0,
+                attackCooldown: 0
+            });
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Movement
+            let dx = 0, dy = 0;
+            if (joystickActive) {
+                dx = joystickDir.x;
+                dy = joystickDir.y;
+            } else {
+                if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+                if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+                if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+                if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+            }
+
+            if (dx !== 0 || dy !== 0) {
+                const len = Math.hypot(dx, dy);
+                player.x += (dx / len) * player.speed;
+                player.y += (dy / len) * player.speed;
+                if (dx !== 0) player.facingRight = dx > 0;
+            }
+
+            player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
+            player.y = Math.max(30, Math.min(canvas.height - 30, player.y));
+
+            // Cooldowns
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.invincible > 0) player.invincible--;
+            if (player.comboTimer > 0) {
+                player.comboTimer--;
+                if (player.comboTimer <= 0) player.combo = 0;
+            }
+
+            // Energy regen
+            if (player.energy < player.maxEnergy) {
+                player.energy += 0.2;
+            }
+
+            // Spawn villains
+            spawnTimer++;
+            const spawnRate = Math.max(60, 120 - difficulty * 5);
+            if (spawnTimer >= spawnRate) {
+                spawnVillain();
+                spawnTimer = 0;
+            }
+
+            // Increase difficulty
+            difficulty += 0.001;
+
+            // Update villains
+            villains.forEach(v => {
+                if (v.knockback > 0) {
+                    v.x += v.knockbackDir * v.knockback;
+                    v.knockback *= 0.8;
+                } else {
+                    const dx = player.x - v.x;
+                    const dy = player.y - v.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist > 40) {
+                        v.x += (dx / dist) * v.speed;
+                        v.y += (dy / dist) * v.speed;
+                    } else if (v.attackCooldown <= 0 && player.invincible <= 0) {
+                        player.health -= v.damage;
+                        player.invincible = 30;
+                        player.combo = 0;
+                        v.attackCooldown = 60;
+
+                        effects.push({ type: 'damage', x: player.x, y: player.y, life: 20 });
+
+                        if (player.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+                if (v.attackCooldown > 0) v.attackCooldown--;
+            });
+
+            // Update projectiles
+            projectiles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life--;
+
+                villains.forEach(v => {
+                    const dist = Math.hypot(p.x - v.x, p.y - v.y);
+                    if (dist < 40) {
+                        hitVillain(v, p.damage);
+                        p.life = 0;
+                    }
+                });
+            });
+            projectiles = projectiles.filter(p => p.life > 0 && p.x > -50 && p.x < canvas.width + 50);
+
+            // Remove dead villains
+            villains = villains.filter(v => {
+                if (v.health <= 0) {
+                    kills++;
+                    const comboBonus = Math.floor(player.combo / 3);
+                    score += v.score * (1 + comboBonus * 0.5);
+                    effects.push({ type: 'death', x: v.x, y: v.y, icon: '💥', life: 20 });
+                    return false;
+                }
+                return true;
+            });
+
+            // Update effects
+            effects = effects.filter(e => {
+                e.life--;
+                return e.life > 0;
+            });
+
+            updateUI();
+        }
+
+        function draw() {
+            // Background
+            const hero = heroes[selectedHero];
+            ctx.fillStyle = '#1e3a5f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // City background
+            ctx.fillStyle = '#0f172a';
+            for (let i = 0; i < 10; i++) {
+                const bw = 60 + Math.random() * 40;
+                const bh = 100 + Math.random() * 150;
+                ctx.fillRect(i * 120 + 20, canvas.height - bh, bw, bh);
+            }
+
+            // Ground
+            ctx.fillStyle = '#374151';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            // Effects (back)
+            effects.filter(e => e.type === 'super').forEach(e => {
+                const scale = 1 + (30 - e.life) / 10;
+                ctx.font = `${60 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = e.life / 30;
+                ctx.fillText(e.icon, e.x, e.y);
+                ctx.globalAlpha = 1;
+            });
+
+            effects.filter(e => e.type === 'death').forEach(e => {
+                ctx.font = `${30 + (20 - e.life)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = e.life / 20;
+                ctx.fillText(e.icon, e.x, e.y - (20 - e.life) * 2);
+                ctx.globalAlpha = 1;
+            });
+
+            // Villains
+            villains.forEach(v => {
+                ctx.font = '45px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(v.icon, v.x, v.y);
+
+                // Health bar
+                if (v.health < v.maxHealth) {
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(v.x - 25, v.y - 40, 50, 6);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(v.x - 25, v.y - 40, 50 * (v.health / v.maxHealth), 6);
+                }
+            });
+
+            // Projectiles
+            projectiles.forEach(p => {
+                ctx.font = `${p.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(p.icon, p.x, p.y);
+            });
+
+            // Player
+            ctx.save();
+            if (player.invincible > 0 && Math.floor(player.invincible / 3) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            ctx.font = '50px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (!player.facingRight) {
+                ctx.scale(-1, 1);
+                ctx.fillText(hero.icon, -player.x, player.y);
+            } else {
+                ctx.fillText(hero.icon, player.x, player.y);
+            }
+            ctx.restore();
+
+            // Effects (front)
+            effects.filter(e => e.type === 'punch').forEach(e => {
+                ctx.font = '35px Arial';
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = e.life / 10;
+                ctx.fillText('💢', e.x, e.y);
+                ctx.globalAlpha = 1;
+            });
+
+            effects.filter(e => e.type === 'hit').forEach(e => {
+                ctx.font = '25px Arial';
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = e.life / 15;
+                ctx.fillText('💥', e.x, e.y - (15 - e.life) * 2);
+                ctx.globalAlpha = 1;
+            });
+
+            effects.filter(e => e.type === 'damage').forEach(e => {
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💔', e.x, e.y - (20 - e.life) * 2);
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('health').textContent = Math.max(0, Math.floor(player.health));
+            document.getElementById('energy').textContent = Math.floor(player.energy);
+            document.getElementById('score').textContent = Math.floor(score);
+
+            document.getElementById('beamBtn').disabled = player.energy < 20;
+            document.getElementById('superBtn').disabled = player.energy < 50;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = Math.floor(score);
+            document.getElementById('finalKills').textContent = kills;
+            document.getElementById('gameOverScreen').classList.remove('hide');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hide');
+            initGame();
+        }
+
+        function initGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.health = player.maxHealth;
+            player.energy = player.maxEnergy;
+            player.attackCooldown = 0;
+            player.invincible = 0;
+            player.combo = 0;
+
+            villains = [];
+            projectiles = [];
+            effects = [];
+            score = 0;
+            kills = 0;
+            spawnTimer = 0;
+            difficulty = 1;
+
+            gameRunning = true;
+            updateUI();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

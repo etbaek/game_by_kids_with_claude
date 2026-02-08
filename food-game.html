@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="touch-action" content="manipulation">
+    <title>Food Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+
+        .game-header {
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .score-value {
+            color: #ffd700;
+        }
+
+        .health-value {
+            color: #ff6b6b;
+        }
+
+        .lives-value {
+            color: #ff9ff3;
+        }
+
+        #gameCanvas {
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .result-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .result-text {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+        }
+
+        .final-score {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .food-info {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+            z-index: 50;
+            display: flex;
+            gap: 20px;
+        }
+
+        .good-food {
+            color: #4ade80;
+        }
+
+        .bad-food {
+            color: #f87171;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .popup.show {
+            animation: popupAnim 1s ease-out forwards;
+        }
+
+        .popup.good {
+            color: #4ade80;
+        }
+
+        .popup.bad {
+            color: #f87171;
+        }
+
+        @keyframes popupAnim {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+        }
+
+        .revive-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 180;
+        }
+
+        .revive-screen.show {
+            display: flex;
+        }
+
+        .revive-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: float 1s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .revive-text {
+            font-size: 28px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .revive-lives {
+            font-size: 20px;
+            color: #ff9ff3;
+            margin-bottom: 30px;
+        }
+
+        .revive-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .revive-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .giveup-btn {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        /* Character Select Screen */
+        .select-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            padding: 20px;
+        }
+
+        .select-screen.hidden {
+            display: none;
+        }
+
+        .select-title {
+            font-size: 2.2rem;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 450px;
+            margin-bottom: 30px;
+        }
+
+        .character-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .character-card:hover {
+            transform: scale(1.05);
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .character-card.selected {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .char-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .char-name {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .char-desc {
+            color: #888;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+
+        @media (max-width: 600px) {
+            .stat-box {
+                padding: 8px 15px;
+            }
+            .stat-value {
+                font-size: 20px;
+            }
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+            .food-info {
+                font-size: 12px;
+                padding: 8px 15px;
+                gap: 15px;
+            }
+            .select-title {
+                font-size: 1.6rem;
+            }
+            .character-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .char-icon {
+                font-size: 40px;
+            }
+            .char-name {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 다른 게임</a>
+
+    <!-- Character Select Screen -->
+    <div class="select-screen" id="selectScreen">
+        <h1 class="select-title">캐릭터 선택</h1>
+        <div class="character-grid" id="characterGrid"></div>
+        <button class="start-btn" onclick="startGame()">게임 시작!</button>
+    </div>
+
+    <div class="game-header" id="gameHeader" style="display: none;">
+        <div class="stat-box">
+            <div class="stat-label">점수</div>
+            <div class="stat-value score-value" id="score">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">체력</div>
+            <div class="stat-value health-value" id="health">100</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">목숨</div>
+            <div class="stat-value lives-value" id="lives">3</div>
+        </div>
+    </div>
+
+    <div class="food-info" id="foodInfo" style="display: none;">
+        <span class="good-food">좋은 음식: 🥦🥕🍎🥗🍗🥩</span>
+        <span class="bad-food">나쁜 음식: 🍔🍟🍕🍩🍫🥤</span>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls" id="controls" style="display: none;">
+        <button class="control-btn" id="leftBtn">◀</button>
+        <button class="control-btn" id="rightBtn">▶</button>
+    </div>
+
+    <div class="popup" id="popup"></div>
+
+    <div class="revive-screen" id="reviveScreen">
+        <div class="revive-icon">😵</div>
+        <div class="revive-text">나쁜 음식을 너무 많이 먹었어요!</div>
+        <div class="revive-lives" id="reviveLives">남은 목숨: 2</div>
+        <button class="revive-btn" onclick="revive()">다시 살아나기</button>
+        <button class="revive-btn giveup-btn" onclick="giveUp()">포기하기</button>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="result-icon">😢</div>
+        <div class="result-text">게임 오버!</div>
+        <div class="final-score" id="finalScore">최종 점수: 0</div>
+        <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+        <button class="restart-btn" style="background: linear-gradient(135deg, #6b7280, #4b5563); margin-top: 10px;" onclick="backToSelect()">캐릭터 선택</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 800);
+            const maxHeight = Math.min(window.innerHeight - 280, 450);
+            canvas.width = maxWidth;
+            canvas.height = maxHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Characters
+        const characters = [
+            { id: 'person', emoji: '🧑', name: '사람', desc: '기본 캐릭터', speedBonus: 0, healthBonus: 0 },
+            { id: 'boy', emoji: '👦', name: '소년', desc: '빠른 이동 속도', speedBonus: 2, healthBonus: 0 },
+            { id: 'girl', emoji: '👧', name: '소녀', desc: '체력 보너스', speedBonus: 0, healthBonus: 20 },
+            { id: 'man', emoji: '👨', name: '아저씨', desc: '균형잡힌 능력', speedBonus: 1, healthBonus: 10 },
+            { id: 'woman', emoji: '👩', name: '아줌마', desc: '체력 회복 증가', speedBonus: 0, healthBonus: 0, healBonus: 1.5 },
+            { id: 'grandpa', emoji: '👴', name: '할아버지', desc: '느리지만 강함', speedBonus: -2, healthBonus: 50 },
+            { id: 'grandma', emoji: '👵', name: '할머니', desc: '나쁜 음식 저항', speedBonus: -1, healthBonus: 0, resistBad: 0.5 },
+            { id: 'baby', emoji: '👶', name: '아기', desc: '매우 빠름!', speedBonus: 4, healthBonus: -20 },
+            { id: 'superhero', emoji: '🦸', name: '슈퍼히어로', desc: '목숨 +1', speedBonus: 1, healthBonus: 0, extraLife: 1 }
+        ];
+
+        let selectedCharacter = characters[0];
+
+        // Create character select grid
+        const grid = document.getElementById('characterGrid');
+        characters.forEach((char, index) => {
+            const card = document.createElement('div');
+            card.className = 'character-card' + (index === 0 ? ' selected' : '');
+            card.innerHTML = `
+                <div class="char-icon">${char.emoji}</div>
+                <div class="char-name">${char.name}</div>
+                <div class="char-desc">${char.desc}</div>
+            `;
+            card.onclick = () => selectCharacter(index);
+            grid.appendChild(card);
+        });
+
+        function selectCharacter(index) {
+            selectedCharacter = characters[index];
+            document.querySelectorAll('.character-card').forEach((card, i) => {
+                card.classList.toggle('selected', i === index);
+            });
+        }
+
+        function startGame() {
+            document.getElementById('selectScreen').classList.add('hidden');
+            document.getElementById('gameHeader').style.display = 'flex';
+            document.getElementById('foodInfo').style.display = 'flex';
+            document.getElementById('controls').style.display = 'flex';
+
+            // Apply character bonuses
+            player.speed = 8 + selectedCharacter.speedBonus;
+            health = 100 + selectedCharacter.healthBonus;
+            lives = 3 + (selectedCharacter.extraLife || 0);
+
+            initGame();
+        }
+
+        function backToSelect() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('selectScreen').classList.remove('hidden');
+            document.getElementById('gameHeader').style.display = 'none';
+            document.getElementById('foodInfo').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            gameRunning = false;
+        }
+
+        // Good foods (healthy)
+        const goodFoods = [
+            { emoji: '🥦', name: '브로콜리', points: 15, health: 5 },
+            { emoji: '🥕', name: '당근', points: 12, health: 5 },
+            { emoji: '🍎', name: '사과', points: 10, health: 3 },
+            { emoji: '🥗', name: '샐러드', points: 20, health: 8 },
+            { emoji: '🍗', name: '치킨', points: 8, health: 2 },
+            { emoji: '🥩', name: '스테이크', points: 10, health: 3 },
+            { emoji: '🍇', name: '포도', points: 8, health: 3 },
+            { emoji: '🥚', name: '계란', points: 10, health: 4 },
+            { emoji: '🐟', name: '생선', points: 15, health: 5 }
+        ];
+
+        // Bad foods (junk food)
+        const badFoods = [
+            { emoji: '🍔', name: '햄버거', points: -10, health: -15 },
+            { emoji: '🍟', name: '감자튀김', points: -8, health: -12 },
+            { emoji: '🍕', name: '피자', points: -8, health: -10 },
+            { emoji: '🍩', name: '도넛', points: -12, health: -18 },
+            { emoji: '🍫', name: '초콜릿', points: -6, health: -8 },
+            { emoji: '🥤', name: '콜라', points: -10, health: -15 },
+            { emoji: '🍦', name: '아이스크림', points: -8, health: -12 },
+            { emoji: '🍪', name: '쿠키', points: -5, health: -8 },
+            { emoji: '🧁', name: '컵케이크', points: -10, health: -15 }
+        ];
+
+        // Game state
+        let gameRunning = false;
+        let score = 0;
+        let health = 100;
+        let lives = 3;
+        let foods = [];
+        let spawnTimer = 0;
+        let difficulty = 1;
+
+        // Player
+        const player = {
+            x: 0,
+            y: 0,
+            width: 60,
+            height: 70,
+            speed: 8,
+            emoji: '🧑',
+            fatness: 0  // 0 = normal, increases with bad food
+        };
+
+        // Chef (gives food)
+        const chef = {
+            x: 0,
+            y: 60,
+            width: 70,
+            height: 80,
+            speed: 3,
+            direction: 1,
+            throwTimer: 0,
+            isThrowing: false
+        };
+
+        // Input
+        const keys = { left: false, right: false };
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        });
+
+        // Touch controls
+        function setupButton(id, key) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+            btn.addEventListener('mousedown', () => keys[key] = true);
+            btn.addEventListener('mouseup', () => keys[key] = false);
+            btn.addEventListener('mouseleave', () => keys[key] = false);
+        }
+        setupButton('leftBtn', 'left');
+        setupButton('rightBtn', 'right');
+
+        function showPopup(text, isGood) {
+            const popup = document.getElementById('popup');
+            popup.textContent = text;
+            popup.className = 'popup show ' + (isGood ? 'good' : 'bad');
+            setTimeout(() => popup.className = 'popup', 1000);
+        }
+
+        function spawnFood() {
+            const isGood = Math.random() > 0.4; // 60% good, 40% bad
+            const foodList = isGood ? goodFoods : badFoods;
+            const foodData = foodList[Math.floor(Math.random() * foodList.length)];
+
+            // Chef throws food
+            chef.isThrowing = true;
+            setTimeout(() => chef.isThrowing = false, 300);
+
+            foods.push({
+                x: chef.x + chef.width / 2,
+                y: chef.y + chef.height,
+                size: 40,
+                speed: 2 + difficulty * 0.5 + Math.random() * 2,
+                ...foodData,
+                isGood: isGood
+            });
+        }
+
+        function update() {
+            // Move player
+            if (keys.left) player.x -= player.speed;
+            if (keys.right) player.x += player.speed;
+            player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+
+            // Move chef
+            chef.x += chef.speed * chef.direction;
+            if (chef.x <= 0) {
+                chef.x = 0;
+                chef.direction = 1;
+            }
+            if (chef.x >= canvas.width - chef.width) {
+                chef.x = canvas.width - chef.width;
+                chef.direction = -1;
+            }
+
+            // Spawn foods
+            spawnTimer++;
+            const spawnRate = Math.max(30, 60 - difficulty * 5);
+            if (spawnTimer >= spawnRate) {
+                spawnFood();
+                spawnTimer = 0;
+            }
+
+            // Update foods
+            for (let i = foods.length - 1; i >= 0; i--) {
+                const food = foods[i];
+                food.y += food.speed;
+
+                // Check collision with player
+                const playerCenterX = player.x + player.width / 2;
+                const playerCenterY = player.y + player.height / 2;
+                const foodCenterX = food.x;
+                const foodCenterY = food.y;
+
+                const dist = Math.hypot(playerCenterX - foodCenterX, playerCenterY - foodCenterY);
+                if (dist < 40) {
+                    // Eaten!
+                    let healthChange = food.health;
+
+                    // Apply character bonuses
+                    if (food.isGood && selectedCharacter.healBonus) {
+                        healthChange = Math.floor(healthChange * selectedCharacter.healBonus);
+                    }
+                    if (!food.isGood && selectedCharacter.resistBad) {
+                        healthChange = Math.floor(healthChange * selectedCharacter.resistBad);
+                    }
+
+                    score += food.points;
+                    health += healthChange;
+
+                    // Update fatness
+                    if (food.isGood) {
+                        player.fatness = Math.max(0, player.fatness - 5);
+                        showPopup('+' + food.points + ' ' + food.emoji, true);
+                    } else {
+                        player.fatness = Math.min(100, player.fatness + 10);
+                        showPopup(food.points + ' ' + food.emoji, false);
+                    }
+
+                    foods.splice(i, 1);
+
+                    // Check death
+                    if (health <= 0) {
+                        health = 0;
+                        lives--;
+                        if (lives > 0) {
+                            showReviveScreen();
+                        } else {
+                            gameOver();
+                        }
+                    }
+                    continue;
+                }
+
+                // Remove if off screen
+                if (food.y > canvas.height + 50) {
+                    foods.splice(i, 1);
+                }
+            }
+
+            // Increase difficulty
+            difficulty = 1 + Math.floor(score / 100) * 0.5;
+
+            // Update UI
+            document.getElementById('score').textContent = Math.max(0, score);
+            document.getElementById('health').textContent = Math.max(0, health);
+            document.getElementById('lives').textContent = lives;
+        }
+
+        function draw() {
+            // Background - kitchen/dining room
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#fef3c7');
+            gradient.addColorStop(1, '#fcd34d');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Kitchen counter at top
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(0, 0, canvas.width, 50);
+            ctx.fillStyle = '#92400e';
+            ctx.fillRect(0, 50, canvas.width, 15);
+
+            // Table at bottom
+            ctx.fillStyle = '#92400e';
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 10);
+
+            // Draw chef
+            ctx.save();
+            ctx.font = `${chef.height}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Flip chef based on direction
+            const chefCenterX = chef.x + chef.width / 2;
+            const chefCenterY = chef.y + chef.height / 2;
+
+            if (chef.direction < 0) {
+                ctx.translate(chefCenterX, 0);
+                ctx.scale(-1, 1);
+                ctx.translate(-chefCenterX, 0);
+            }
+
+            // Chef emoji
+            ctx.fillText('👨‍🍳', chefCenterX, chefCenterY);
+
+            // Throwing animation
+            if (chef.isThrowing) {
+                ctx.font = '30px Arial';
+                ctx.fillText('💨', chefCenterX + (chef.direction > 0 ? 30 : -30), chefCenterY + 20);
+            }
+
+            ctx.restore();
+
+            // Draw foods
+            foods.forEach(food => {
+                ctx.font = `${food.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Glow effect
+                if (food.isGood) {
+                    ctx.shadowColor = '#4ade80';
+                    ctx.shadowBlur = 15;
+                } else {
+                    ctx.shadowColor = '#f87171';
+                    ctx.shadowBlur = 15;
+                }
+
+                ctx.fillText(food.emoji, food.x, food.y);
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw player with body
+            const playerCenterX = player.x + player.width / 2;
+            const playerCenterY = player.y + player.height / 2;
+
+            // Body (gets fatter with bad food)
+            const bodyWidth = 30 + player.fatness * 0.8;
+            const bodyHeight = 40 + player.fatness * 0.5;
+            const bodyY = playerCenterY + 15;
+
+            // Body color based on fatness
+            let bodyColor;
+            if (player.fatness < 30) {
+                bodyColor = '#fbbf24'; // Yellow - healthy
+            } else if (player.fatness < 60) {
+                bodyColor = '#fb923c'; // Orange - getting fat
+            } else {
+                bodyColor = '#ef4444'; // Red - very fat
+            }
+
+            // Draw body (oval shape)
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(playerCenterX, bodyY, bodyWidth / 2, bodyHeight / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw legs
+            ctx.fillStyle = '#1e40af';
+            ctx.fillRect(playerCenterX - 15, bodyY + bodyHeight / 2 - 5, 10, 25);
+            ctx.fillRect(playerCenterX + 5, bodyY + bodyHeight / 2 - 5, 10, 25);
+
+            // Draw arms
+            ctx.fillStyle = bodyColor;
+            const armY = bodyY - 5;
+            ctx.fillRect(playerCenterX - bodyWidth / 2 - 8, armY, 10, 20);
+            ctx.fillRect(playerCenterX + bodyWidth / 2 - 2, armY, 10, 20);
+
+            // Draw head (emoji)
+            ctx.font = '45px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(player.emoji, playerCenterX, playerCenterY - 15);
+
+            // Sweat drops if very fat
+            if (player.fatness > 50) {
+                ctx.font = '15px Arial';
+                ctx.fillText('💦', playerCenterX + 25, playerCenterY - 25);
+            }
+            if (player.fatness > 80) {
+                ctx.fillText('💦', playerCenterX - 25, playerCenterY - 20);
+                ctx.fillText('😰', playerCenterX, playerCenterY - 15);
+            }
+
+            // Health bar above player
+            const barWidth = 50;
+            const barHeight = 8;
+            const barX = player.x + player.width / 2 - barWidth / 2;
+            const barY = player.y - 15;
+
+            ctx.fillStyle = '#374151';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Health color based on amount
+            let healthColor;
+            if (health > 100) {
+                healthColor = '#60a5fa'; // Blue for overheal
+            } else if (health > 30) {
+                healthColor = '#4ade80'; // Green
+            } else {
+                healthColor = '#f87171'; // Red
+            }
+
+            ctx.fillStyle = healthColor;
+            const fillWidth = Math.min(barWidth, barWidth * (health / 100));
+            ctx.fillRect(barX, barY, fillWidth, barHeight);
+
+            // Overheal glow effect
+            if (health > 100) {
+                ctx.shadowColor = '#60a5fa';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(barX, barY, fillWidth, barHeight);
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+        }
+
+        function showReviveScreen() {
+            gameRunning = false;
+            document.getElementById('reviveLives').textContent = '남은 목숨: ' + lives;
+            document.getElementById('reviveScreen').classList.add('show');
+        }
+
+        function revive() {
+            document.getElementById('reviveScreen').classList.remove('show');
+            health = 50;
+            foods = [];
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function giveUp() {
+            document.getElementById('reviveScreen').classList.remove('show');
+            lives = 0;
+            gameOver();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = '최종 점수: ' + Math.max(0, score);
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            initGame();
+        }
+
+        function initGame() {
+            score = 0;
+            health = 100 + (selectedCharacter.healthBonus || 0);
+            lives = 3 + (selectedCharacter.extraLife || 0);
+            foods = [];
+            difficulty = 1;
+            spawnTimer = 0;
+
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 100;
+            player.speed = 8 + (selectedCharacter.speedBonus || 0);
+            player.emoji = selectedCharacter.emoji;
+            player.fatness = 0;
+
+            chef.x = canvas.width / 2 - chef.width / 2;
+            chef.direction = 1;
+
+            gameRunning = true;
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize positions only
+        player.x = canvas.width / 2 - player.width / 2;
+        player.y = canvas.height - 100;
+        chef.x = canvas.width / 2 - chef.width / 2;
+    </script>
+</body>
+</html>

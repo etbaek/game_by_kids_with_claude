@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="touch-action" content="manipulation">
+    <title>Hair Styling Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f9a8d4 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #831843;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: scale(1.05);
+        }
+
+        .game-header {
+            width: 100%;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: #831843;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 10px 20px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #9d174d;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #831843;
+        }
+
+        #gameCanvas {
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(131, 24, 67, 0.2);
+            cursor: pointer;
+        }
+
+        .style-request {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: #831843;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 50;
+            box-shadow: 0 5px 20px rgba(131, 24, 67, 0.2);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            padding: 15px 30px;
+            border-radius: 25px;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tie-btn {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            color: white;
+        }
+
+        .tie-btn:active {
+            transform: scale(0.95);
+        }
+
+        .tie-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.5);
+            color: #831843;
+        }
+
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .result-popup.show {
+            animation: resultPop 1.5s ease-out forwards;
+        }
+
+        .result-popup.success {
+            color: #22c55e;
+        }
+
+        .result-popup.fail {
+            color: #ef4444;
+        }
+
+        .completion-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 220, 240, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 180;
+        }
+
+        .completion-screen.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .completion-title {
+            font-size: 48px;
+            color: #ec4899;
+            margin-bottom: 20px;
+            animation: bounceIn 0.5s ease;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .completion-hairstyle {
+            font-size: 120px;
+            margin-bottom: 20px;
+            animation: sparkle 1s infinite alternate;
+        }
+
+        @keyframes sparkle {
+            0% { filter: drop-shadow(0 0 10px #f472b6); transform: scale(1); }
+            100% { filter: drop-shadow(0 0 30px #ec4899); transform: scale(1.1); }
+        }
+
+        .completion-message {
+            font-size: 24px;
+            color: #831843;
+            margin-bottom: 10px;
+        }
+
+        .completion-points {
+            font-size: 32px;
+            color: #22c55e;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .next-btn {
+            padding: 20px 50px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .next-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
+        }
+
+        .sparkles {
+            position: absolute;
+            font-size: 30px;
+            animation: float 2s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(-20px) rotate(10deg); opacity: 0.7; }
+        }
+
+        @keyframes resultPop {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            30% { transform: translate(-50%, -50%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .result-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .result-text {
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .final-score {
+            font-size: 24px;
+            color: #f472b6;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(236, 72, 153, 0.5);
+        }
+
+        @media (max-width: 600px) {
+            .stat-box {
+                padding: 8px 15px;
+            }
+            .stat-value {
+                font-size: 20px;
+            }
+            .style-request {
+                font-size: 14px;
+                padding: 10px 20px;
+            }
+            .control-btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 다른 게임</a>
+
+    <div class="game-header">
+        <div class="stat-box">
+            <div class="stat-label">점수</div>
+            <div class="stat-value" id="score">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">레벨</div>
+            <div class="stat-value" id="level">1</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">성공</div>
+            <div class="stat-value" id="success">0</div>
+        </div>
+    </div>
+
+    <div class="style-request" id="styleRequest">🎀 포니테일을 만들어주세요!</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="controls">
+        <button class="control-btn reset-btn" onclick="resetHair()">↺ 다시</button>
+        <button class="control-btn tie-btn" id="tieBtn" onclick="tieHair()">🎀 묶기!</button>
+    </div>
+
+    <div class="result-popup" id="resultPopup"></div>
+
+    <div class="completion-screen" id="completionScreen">
+        <div class="completion-title">짜잔! 완성!</div>
+        <div class="completion-hairstyle" id="completionHairstyle">👧🎀</div>
+        <div class="completion-message" id="completionMessage">포니테일 완성!</div>
+        <div class="completion-points" id="completionPoints">+80점!</div>
+        <button class="next-btn" onclick="goNextRound()">다음 손님 →</button>
+        <div class="sparkles" style="top: 20%; left: 20%;">✨</div>
+        <div class="sparkles" style="top: 30%; right: 20%; animation-delay: 0.3s;">💖</div>
+        <div class="sparkles" style="top: 60%; left: 15%; animation-delay: 0.6s;">🌟</div>
+        <div class="sparkles" style="top: 70%; right: 15%; animation-delay: 0.9s;">💕</div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="result-icon">💇‍♀️</div>
+        <div class="result-text">게임 끝!</div>
+        <div class="final-score" id="finalScore">최종 점수: 0</div>
+        <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 500);
+            const maxHeight = Math.min(window.innerHeight - 300, 500);
+            const size = Math.min(maxWidth, maxHeight);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Hairstyles
+        const hairstyles = [
+            { name: '포니테일', emoji: '🎀', targetZone: 'top', minHairs: 6 },
+            { name: '양갈래', emoji: '🎀🎀', targetZone: 'sides', minHairs: 4 },
+            { name: '똥머리', emoji: '🍡', targetZone: 'top', minHairs: 8 },
+            { name: '반묶음', emoji: '✨', targetZone: 'top', minHairs: 4 },
+            { name: '낮은 포니테일', emoji: '🎗️', targetZone: 'bottom', minHairs: 6 }
+        ];
+
+        // Game state
+        let gameRunning = true;
+        let score = 0;
+        let level = 1;
+        let successCount = 0;
+        let currentStyle = null;
+
+        // Hair strands
+        let hairs = [];
+        let gatheredHairs = [];
+        let tieZone = { x: 0, y: 0, radius: 40 };
+
+        // Drag state
+        let isDragging = false;
+        let draggedHair = null;
+
+        // Head position
+        const head = {
+            x: 0,
+            y: 0,
+            radius: 80
+        };
+
+        function initHairs() {
+            hairs = [];
+            gatheredHairs = [];
+
+            const numHairs = 8 + level * 2;
+
+            for (let i = 0; i < numHairs; i++) {
+                const angle = (Math.PI / (numHairs + 1)) * (i + 1) + Math.PI;
+                const startX = head.x + Math.cos(angle) * head.radius;
+                const startY = head.y + Math.sin(angle) * head.radius * 0.8;
+
+                hairs.push({
+                    id: i,
+                    startX: startX,
+                    startY: startY,
+                    endX: startX + Math.cos(angle) * (60 + Math.random() * 40),
+                    endY: startY + Math.sin(angle) * (60 + Math.random() * 40) + 30,
+                    controlX: startX + Math.cos(angle) * 30,
+                    controlY: startY + Math.sin(angle) * 30 + 20,
+                    gathered: false,
+                    color: `hsl(30, ${60 + Math.random() * 20}%, ${20 + Math.random() * 15}%)`
+                });
+            }
+
+            // Set tie zone based on style
+            setTieZone();
+        }
+
+        function setTieZone() {
+            if (!currentStyle) return;
+
+            switch (currentStyle.targetZone) {
+                case 'top':
+                    tieZone.x = head.x;
+                    tieZone.y = head.y - head.radius - 30;
+                    break;
+                case 'bottom':
+                    tieZone.x = head.x;
+                    tieZone.y = head.y + head.radius + 50;
+                    break;
+                case 'sides':
+                    tieZone.x = head.x;
+                    tieZone.y = head.y;
+                    break;
+            }
+        }
+
+        function selectNewStyle() {
+            currentStyle = hairstyles[Math.floor(Math.random() * hairstyles.length)];
+            document.getElementById('styleRequest').textContent =
+                `${currentStyle.emoji} ${currentStyle.name}을 만들어주세요!`;
+            setTieZone();
+        }
+
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#fce7f3';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw tie zone hint
+            ctx.fillStyle = 'rgba(236, 72, 153, 0.1)';
+            ctx.beginPath();
+            ctx.arc(tieZone.x, tieZone.y, tieZone.radius + 20, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw head (back)
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.ellipse(head.x, head.y, head.radius, head.radius * 0.9, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw ungathered hairs
+            hairs.filter(h => !h.gathered).forEach(hair => {
+                drawHair(hair);
+            });
+
+            // Draw gathered hairs
+            gatheredHairs.forEach(hair => {
+                drawGatheredHair(hair);
+            });
+
+            // Draw face
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.ellipse(head.x, head.y + 10, head.radius * 0.85, head.radius * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#1f2937';
+            ctx.beginPath();
+            ctx.ellipse(head.x - 25, head.y, 8, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(head.x + 25, head.y, 8, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye shine
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(head.x - 22, head.y - 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(head.x + 28, head.y - 3, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouth
+            ctx.strokeStyle = '#831843';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(head.x, head.y + 25, 15, 0.2, Math.PI - 0.2);
+            ctx.stroke();
+
+            // Blush
+            ctx.fillStyle = 'rgba(251, 113, 133, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(head.x - 45, head.y + 15, 12, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(head.x + 45, head.y + 15, 12, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw tie zone label
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#ec4899';
+            ctx.textAlign = 'center';
+            ctx.fillText('여기로 모아요!', tieZone.x, tieZone.y + tieZone.radius + 35);
+
+            // Update tie button state
+            const canTie = gatheredHairs.length >= (currentStyle?.minHairs || 4);
+            document.getElementById('tieBtn').disabled = !canTie;
+        }
+
+        function drawHair(hair) {
+            ctx.strokeStyle = hair.color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(hair.startX, hair.startY);
+            ctx.quadraticCurveTo(hair.controlX, hair.controlY, hair.endX, hair.endY);
+            ctx.stroke();
+
+            // Hair end (grabbable)
+            ctx.fillStyle = hair.color;
+            ctx.beginPath();
+            ctx.arc(hair.endX, hair.endY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawGatheredHair(hair) {
+            ctx.strokeStyle = hair.color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            // Draw curved line to tie zone (use stored offsets to prevent wiggling)
+            ctx.beginPath();
+            ctx.moveTo(hair.startX, hair.startY);
+            ctx.quadraticCurveTo(
+                (hair.startX + tieZone.x) / 2,
+                (hair.startY + tieZone.y) / 2 - 20,
+                tieZone.x + (hair.gatherOffsetX || 0),
+                tieZone.y + (hair.gatherOffsetY || 0)
+            );
+            ctx.stroke();
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            return { x, y };
+        }
+
+        function findHairAt(x, y) {
+            for (let hair of hairs) {
+                if (hair.gathered) continue;
+                const dist = Math.hypot(x - hair.endX, y - hair.endY);
+                if (dist < 20) {
+                    return hair;
+                }
+            }
+            return null;
+        }
+
+        function onPointerDown(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            draggedHair = findHairAt(pos.x, pos.y);
+            if (draggedHair) {
+                isDragging = true;
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging || !draggedHair) return;
+            e.preventDefault();
+
+            const pos = getMousePos(e);
+            draggedHair.endX = pos.x;
+            draggedHair.endY = pos.y;
+            draggedHair.controlX = (draggedHair.startX + pos.x) / 2;
+            draggedHair.controlY = (draggedHair.startY + pos.y) / 2;
+        }
+
+        function onPointerUp(e) {
+            if (!isDragging || !draggedHair) return;
+
+            // Check if hair is in tie zone
+            const dist = Math.hypot(draggedHair.endX - tieZone.x, draggedHair.endY - tieZone.y);
+            if (dist < tieZone.radius + 20) {
+                draggedHair.gathered = true;
+                // Store fixed random offset so hair doesn't wiggle
+                draggedHair.gatherOffsetX = (Math.random() - 0.5) * 20;
+                draggedHair.gatherOffsetY = (Math.random() - 0.5) * 20;
+                gatheredHairs.push(draggedHair);
+            }
+
+            isDragging = false;
+            draggedHair = null;
+        }
+
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        canvas.addEventListener('mouseup', onPointerUp);
+        canvas.addEventListener('mouseleave', onPointerUp);
+        canvas.addEventListener('touchstart', onPointerDown);
+        canvas.addEventListener('touchmove', onPointerMove);
+        canvas.addEventListener('touchend', onPointerUp);
+
+        function tieHair() {
+            if (gatheredHairs.length < (currentStyle?.minHairs || 4)) return;
+
+            // Success!
+            const points = gatheredHairs.length * 10;
+            score += points;
+            successCount++;
+
+            // Level up every 3 successes
+            if (successCount % 3 === 0) {
+                level++;
+            }
+
+            updateUI();
+
+            // Show completion screen
+            showCompletionScreen(points);
+        }
+
+        function showCompletionScreen(points) {
+            const screen = document.getElementById('completionScreen');
+
+            // Set hairstyle emoji based on style
+            const hairstyleEmojis = {
+                '포니테일': '👧🎀',
+                '양갈래': '👧🎀🎀',
+                '똥머리': '👧🍡',
+                '반묶음': '👧✨',
+                '낮은 포니테일': '👧🎗️'
+            };
+
+            document.getElementById('completionHairstyle').textContent =
+                hairstyleEmojis[currentStyle.name] || '👧🎀';
+            document.getElementById('completionMessage').textContent =
+                `${currentStyle.name} 완성!`;
+            document.getElementById('completionPoints').textContent =
+                `+${points}점!`;
+
+            screen.classList.add('show');
+        }
+
+        function goNextRound() {
+            document.getElementById('completionScreen').classList.remove('show');
+            selectNewStyle();
+            initHairs();
+        }
+
+        function resetHair() {
+            initHairs();
+        }
+
+        function showResult(text, isSuccess) {
+            const popup = document.getElementById('resultPopup');
+            popup.textContent = text;
+            popup.className = 'result-popup show ' + (isSuccess ? 'success' : 'fail');
+            setTimeout(() => popup.className = 'result-popup', 1500);
+        }
+
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('success').textContent = successCount;
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            score = 0;
+            level = 1;
+            successCount = 0;
+            gameRunning = true;
+            updateUI();
+            selectNewStyle();
+            initHairs();
+        }
+
+        function gameLoop() {
+            if (gameRunning) {
+                draw();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize
+        head.x = canvas.width / 2;
+        head.y = canvas.height / 2 + 20;
+
+        selectNewStyle();
+        initHairs();
+        gameLoop();
+    </script>
+</body>
+</html>

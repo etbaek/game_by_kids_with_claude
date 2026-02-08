@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eat Food!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: #87CEEB;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #92400e;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 15px;
+            color: #92400e;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        .mobile-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid #f59e0b;
+            border-radius: 50%;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active {
+            background: #fcd34d;
+            transform: scale(0.95);
+        }
+
+        .score-popup {
+            position: fixed;
+            pointer-events: none;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 150;
+            animation: floatUp 1s ease-out forwards;
+        }
+
+        .score-popup.good {
+            color: #22c55e;
+        }
+
+        .score-popup.bad {
+            color: #ef4444;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+
+        .start-screen, .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide, .game-over-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 48px;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #fbbf24;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .preview {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .hint .good { color: #22c55e; }
+        .hint .bad { color: #ef4444; }
+
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-size: 36px;
+            color: #fbbf24;
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        @media (min-width: 800px) {
+            .mobile-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">⭐ 점수: <span id="score">0</span></div>
+        <div class="stat-box">❤️ 생명: <span id="lives">3</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="mobile-controls">
+        <button class="control-btn" id="leftBtn">⬅️</button>
+        <button class="control-btn" id="rightBtn">➡️</button>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">EAT FOOD!</div>
+        <div class="subtitle">음식만 먹어요!</div>
+        <div class="preview">🍎🍕🧱🔧</div>
+        <div class="hint">
+            <span class="good">🍎🍕🍔🍟 음식 = 점수 UP!</span><br>
+            <span class="bad">🧱🔧📱💎 물건 = 점수 DOWN!</span>
+        </div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            PC: ← → 방향키로 이동<br>
+            모바일: 버튼으로 이동
+        </div>
+    </div>
+
+    <div class="game-over-screen hide" id="gameOverScreen">
+        <div class="game-over-title">GAME OVER</div>
+        <div class="final-score">점수: <span id="finalScore">0</span></div>
+        <button class="start-btn" onclick="restartGame()">다시 하기</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Foods (good items)
+        const foods = ['🍎', '🍊', '🍋', '🍇', '🍉', '🍓', '🍒', '🍑', '🍌', '🍍',
+                       '🍕', '🍔', '🍟', '🌭', '🍿', '🥐', '🍞', '🧀', '🍖', '🍗',
+                       '🥩', '🥓', '🍳', '🥞', '🧇', '🍰', '🎂', '🍩', '🍪', '🍫',
+                       '🍬', '🍭', '🍮', '🍨', '🍧', '🍦', '🥧', '🧁', '🥤', '🧃'];
+
+        // Objects (bad items)
+        const objects = ['🧱', '🔧', '📱', '💎', '🔨', '⚙️', '🔩', '📦', '🧲', '💡',
+                         '🔋', '💿', '📀', '🖥️', '⌨️', '🖱️', '🎮', '🕹️', '📷', '🔦',
+                         '⏰', '🧭', '🔑', '🗝️', '🪛', '🪓', '⛏️', '🧪', '🧫', '🧬'];
+
+        let gameRunning = false;
+        let score = 0;
+        let lives = 3;
+        let difficulty = 1;
+
+        // Player
+        const player = {
+            x: 0,
+            y: 0,
+            width: 60,
+            height: 60,
+            speed: 8,
+            emoji: '😋'
+        };
+
+        // Falling items
+        let items = [];
+        let spawnTimer = 0;
+
+        // Score popups
+        let popups = [];
+
+        // Input
+        const keys = {};
+        let touchLeft = false;
+        let touchRight = false;
+
+        document.addEventListener('keydown', e => keys[e.code] = true);
+        document.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Mobile controls
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+
+        leftBtn.addEventListener('touchstart', e => { e.preventDefault(); touchLeft = true; });
+        leftBtn.addEventListener('touchend', e => { e.preventDefault(); touchLeft = false; });
+        rightBtn.addEventListener('touchstart', e => { e.preventDefault(); touchRight = true; });
+        rightBtn.addEventListener('touchend', e => { e.preventDefault(); touchRight = false; });
+
+        function spawnItem() {
+            const isFood = Math.random() < 0.6; // 60% food, 40% objects
+            const itemList = isFood ? foods : objects;
+            const emoji = itemList[Math.floor(Math.random() * itemList.length)];
+
+            items.push({
+                x: 50 + Math.random() * (canvas.width - 100),
+                y: -50,
+                emoji: emoji,
+                isFood: isFood,
+                speed: 3 + Math.random() * 2 + difficulty * 0.5,
+                size: 45
+            });
+        }
+
+        function createPopup(x, y, text, isGood) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup ' + (isGood ? 'good' : 'bad');
+            popup.textContent = text;
+            popup.style.left = x + 'px';
+            popup.style.top = y + 'px';
+            document.body.appendChild(popup);
+
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Player movement
+            if (keys['ArrowLeft'] || touchLeft) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] || touchRight) {
+                player.x += player.speed;
+            }
+
+            player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
+
+            // Spawn items
+            spawnTimer++;
+            const spawnRate = Math.max(20, 60 - difficulty * 5);
+            if (spawnTimer >= spawnRate) {
+                spawnItem();
+                spawnTimer = 0;
+            }
+
+            // Increase difficulty
+            difficulty += 0.002;
+
+            // Update items
+            items.forEach(item => {
+                item.y += item.speed;
+
+                // Check collision with player
+                const dx = item.x - player.x;
+                const dy = item.y - player.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < 45) {
+                    if (item.isFood) {
+                        // Ate food - good!
+                        const points = 10 + Math.floor(difficulty) * 5;
+                        score += points;
+                        createPopup(item.x, item.y, `+${points}`, true);
+                        player.emoji = '😋';
+                    } else {
+                        // Ate object - bad!
+                        const penalty = 20 + Math.floor(difficulty) * 10;
+                        score -= penalty;
+                        if (score < 0) {
+                            lives--;
+                            score = 0;
+                            if (lives <= 0) {
+                                gameOver();
+                            }
+                        }
+                        createPopup(item.x, item.y, `-${penalty}`, false);
+                        player.emoji = '🤢';
+                        setTimeout(() => { if (gameRunning) player.emoji = '😋'; }, 500);
+                    }
+                    item.y = canvas.height + 100; // Remove
+                }
+            });
+
+            // Remove off-screen items
+            items = items.filter(item => item.y < canvas.height + 50);
+
+            updateUI();
+        }
+
+        function draw() {
+            // Simple clean background
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Simple ground
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+
+            // Draw items (no glow, simple)
+            items.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.font = `${item.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.emoji, 0, 0);
+                ctx.restore();
+            });
+
+            // Draw player
+            ctx.font = '55px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(player.emoji, player.x, player.y);
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = lives;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverScreen').classList.remove('hide');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hide');
+            initGame();
+        }
+
+        function initGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 100;
+            player.emoji = '😋';
+
+            items = [];
+            score = 0;
+            lives = 3;
+            difficulty = 1;
+            spawnTimer = 0;
+
+            gameRunning = true;
+            updateUI();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

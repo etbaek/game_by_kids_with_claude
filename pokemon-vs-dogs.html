@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pokemon vs Bad Dogs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: #87CEEB;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+
+        .move-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid #333;
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .control-btn:active {
+            background: #ddd;
+            transform: scale(0.95);
+        }
+
+        .attack-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .attack-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+        }
+
+        .attack-btn.attack1 {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            border-color: #fca5a5;
+        }
+
+        .attack-btn.attack2 {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-color: #93c5fd;
+        }
+
+        .attack-btn:active {
+            transform: scale(0.9);
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 36px;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .team-select {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .team-option {
+            width: 140px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid transparent;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .team-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .team-option.selected {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.2);
+        }
+
+        .team-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .team-name {
+            font-size: 16px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .team-desc {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .character-select {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .char-option {
+            width: 70px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .char-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .char-option.selected {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.2);
+        }
+
+        .char-option .icon {
+            font-size: 35px;
+        }
+
+        .char-option .name {
+            font-size: 10px;
+            color: white;
+            margin-top: 5px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .result-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .result-text {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .result-text.win { color: #22c55e; }
+        .result-text.lose { color: #ef4444; }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        @media (min-width: 800px) {
+            .mobile-controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="mobile-controls">
+        <div class="move-buttons">
+            <button class="control-btn" id="leftBtn">⬅️</button>
+            <button class="control-btn" id="rightBtn">➡️</button>
+        </div>
+        <div class="attack-buttons">
+            <button class="attack-btn attack1" id="attack1Btn">💥</button>
+            <button class="attack-btn attack2" id="attack2Btn">⚡</button>
+        </div>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">Pokemon vs Bad Dogs</div>
+        <div class="subtitle">팀을 선택하세요!</div>
+
+        <div class="team-select" id="teamSelect">
+            <div class="team-option selected" data-team="pokemon">
+                <div class="team-icon">⚡</div>
+                <div class="team-name">착한 포켓몬</div>
+                <div class="team-desc">정의의 편!</div>
+            </div>
+            <div class="team-option" data-team="dog">
+                <div class="team-icon">🐕</div>
+                <div class="team-name">나쁜 강아지</div>
+                <div class="team-desc">악당이 되자!</div>
+            </div>
+        </div>
+
+        <div class="character-select" id="charSelect"></div>
+
+        <button class="start-btn" onclick="startGame()">배틀 시작!</button>
+        <div class="instructions">
+            PC: ← → 이동, Z X 공격<br>
+            모바일: 버튼으로 조작
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="result-icon" id="resultIcon">🏆</div>
+        <div class="result-text" id="resultText">승리!</div>
+        <button class="restart-btn" onclick="restartGame()">다시 하기</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Teams
+        const pokemons = [
+            { id: 'pikachu', name: '피카츄', icon: '⚡', color: '#fbbf24', attack1: '⚡', attack2: '💛' },
+            { id: 'fire', name: '파이리', icon: '🔥', color: '#ef4444', attack1: '🔥', attack2: '💥' },
+            { id: 'water', name: '꼬부기', icon: '💧', color: '#3b82f6', attack1: '💧', attack2: '🌊' },
+            { id: 'grass', name: '이상해씨', icon: '🌿', color: '#22c55e', attack1: '🍃', attack2: '🌸' },
+            { id: 'psychic', name: '뮤', icon: '💫', color: '#a855f7', attack1: '💜', attack2: '✨' }
+        ];
+
+        const badDogs = [
+            { id: 'angry', name: '화난 개', icon: '🐕', color: '#78716c', attack1: '💢', attack2: '🦴' },
+            { id: 'black', name: '검은 개', icon: '🐕‍🦺', color: '#1f2937', attack1: '🖤', attack2: '💀' },
+            { id: 'wolf', name: '늑대', icon: '🐺', color: '#6b7280', attack1: '🌙', attack2: '💨' },
+            { id: 'devil', name: '악마견', icon: '👿', color: '#dc2626', attack1: '😈', attack2: '🔥' },
+            { id: 'boss', name: '보스독', icon: '🦮', color: '#92400e', attack1: '💪', attack2: '⭐' }
+        ];
+
+        let selectedTeam = 'pokemon';
+        let selectedChar = 0;
+        let gameRunning = false;
+
+        // Player and enemy
+        let player = null;
+        let enemy = null;
+        let projectiles = [];
+        let effects = [];
+
+        // Input
+        const keys = {};
+        let touchLeft = false;
+        let touchRight = false;
+
+        document.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (!gameRunning) return;
+            if (e.code === 'KeyZ') attack1();
+            if (e.code === 'KeyX') attack2();
+        });
+        document.addEventListener('keyup', e => keys[e.code] = false);
+
+        // Team select
+        document.querySelectorAll('.team-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.team-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedTeam = opt.dataset.team;
+                selectedChar = 0;
+                updateCharSelect();
+            });
+        });
+
+        function updateCharSelect() {
+            const container = document.getElementById('charSelect');
+            const chars = selectedTeam === 'pokemon' ? pokemons : badDogs;
+
+            container.innerHTML = chars.map((c, i) => `
+                <div class="char-option ${i === selectedChar ? 'selected' : ''}" data-index="${i}">
+                    <div class="icon">${c.icon}</div>
+                    <div class="name">${c.name}</div>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.char-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    container.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    selectedChar = parseInt(opt.dataset.index);
+                });
+            });
+        }
+
+        updateCharSelect();
+
+        // Mobile controls
+        document.getElementById('leftBtn').addEventListener('touchstart', e => { e.preventDefault(); touchLeft = true; });
+        document.getElementById('leftBtn').addEventListener('touchend', e => { e.preventDefault(); touchLeft = false; });
+        document.getElementById('rightBtn').addEventListener('touchstart', e => { e.preventDefault(); touchRight = true; });
+        document.getElementById('rightBtn').addEventListener('touchend', e => { e.preventDefault(); touchRight = false; });
+        document.getElementById('attack1Btn').addEventListener('touchstart', e => { e.preventDefault(); attack1(); });
+        document.getElementById('attack2Btn').addEventListener('touchstart', e => { e.preventDefault(); attack2(); });
+
+        function createFighter(charData, isPlayer, startX) {
+            return {
+                x: startX,
+                y: canvas.height - 150,
+                width: 60,
+                height: 60,
+                speed: 5,
+                health: 100,
+                maxHealth: 100,
+                ...charData,
+                isPlayer: isPlayer,
+                facingRight: isPlayer,
+                attackCooldown: 0,
+                invincible: 0,
+                isAttacking: false
+            };
+        }
+
+        function attack1() {
+            if (player.attackCooldown > 0) return;
+            player.attackCooldown = 30;
+            player.isAttacking = true;
+
+            projectiles.push({
+                x: player.x + (player.facingRight ? 40 : -40),
+                y: player.y,
+                vx: player.facingRight ? 10 : -10,
+                icon: player.attack1,
+                damage: 15,
+                isPlayerProjectile: true,
+                life: 60
+            });
+
+            setTimeout(() => player.isAttacking = false, 150);
+        }
+
+        function attack2() {
+            if (player.attackCooldown > 0) return;
+            player.attackCooldown = 50;
+            player.isAttacking = true;
+
+            // Stronger but slower attack
+            projectiles.push({
+                x: player.x + (player.facingRight ? 40 : -40),
+                y: player.y,
+                vx: player.facingRight ? 8 : -8,
+                icon: player.attack2,
+                damage: 25,
+                isPlayerProjectile: true,
+                life: 80,
+                size: 40
+            });
+
+            setTimeout(() => player.isAttacking = false, 200);
+        }
+
+        function enemyAI() {
+            if (!enemy || enemy.health <= 0) return;
+
+            // Move towards player
+            const dx = player.x - enemy.x;
+            if (Math.abs(dx) > 150) {
+                enemy.x += Math.sign(dx) * (enemy.speed * 0.7);
+            }
+            enemy.facingRight = dx > 0;
+
+            // Attack
+            if (enemy.attackCooldown <= 0 && Math.abs(dx) < 300) {
+                enemy.attackCooldown = 60 + Math.random() * 40;
+                enemy.isAttacking = true;
+
+                const useStrong = Math.random() < 0.3;
+                projectiles.push({
+                    x: enemy.x + (enemy.facingRight ? 40 : -40),
+                    y: enemy.y,
+                    vx: enemy.facingRight ? 8 : -8,
+                    icon: useStrong ? enemy.attack2 : enemy.attack1,
+                    damage: useStrong ? 20 : 12,
+                    isPlayerProjectile: false,
+                    life: 60,
+                    size: useStrong ? 35 : 25
+                });
+
+                setTimeout(() => enemy.isAttacking = false, 150);
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Player movement
+            if (keys['ArrowLeft'] || touchLeft) {
+                player.x -= player.speed;
+                player.facingRight = false;
+            }
+            if (keys['ArrowRight'] || touchRight) {
+                player.x += player.speed;
+                player.facingRight = true;
+            }
+
+            player.x = Math.max(40, Math.min(canvas.width - 40, player.x));
+
+            // Cooldowns
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.invincible > 0) player.invincible--;
+            if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+            if (enemy.invincible > 0) enemy.invincible--;
+
+            // Enemy AI
+            enemyAI();
+
+            // Update projectiles
+            projectiles.forEach(p => {
+                p.x += p.vx;
+                p.life--;
+
+                // Check hits
+                const target = p.isPlayerProjectile ? enemy : player;
+                const dist = Math.hypot(p.x - target.x, p.y - target.y);
+
+                if (dist < 50 && target.invincible <= 0) {
+                    target.health -= p.damage;
+                    target.invincible = 20;
+                    p.life = 0;
+
+                    effects.push({
+                        x: target.x,
+                        y: target.y,
+                        icon: '💥',
+                        life: 15
+                    });
+
+                    if (target.health <= 0) {
+                        endGame(p.isPlayerProjectile);
+                    }
+                }
+            });
+
+            projectiles = projectiles.filter(p => p.life > 0 && p.x > -50 && p.x < canvas.width + 50);
+
+            // Update effects
+            effects = effects.filter(e => {
+                e.life--;
+                return e.life > 0;
+            });
+        }
+
+        function draw() {
+            // Background
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+
+            // Draw fighters
+            [enemy, player].forEach(fighter => {
+                if (!fighter) return;
+
+                ctx.save();
+
+                // Flash when hit
+                if (fighter.invincible > 0 && Math.floor(fighter.invincible / 3) % 2 === 0) {
+                    ctx.globalAlpha = 0.5;
+                }
+
+                // Draw character
+                ctx.font = '55px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (!fighter.facingRight) {
+                    ctx.scale(-1, 1);
+                    ctx.fillText(fighter.icon, -fighter.x, fighter.y);
+                } else {
+                    ctx.fillText(fighter.icon, fighter.x, fighter.y);
+                }
+
+                ctx.restore();
+
+                // Health bar
+                const barWidth = 80;
+                const barX = fighter.x - barWidth / 2;
+                const barY = fighter.y - 50;
+
+                ctx.fillStyle = '#333';
+                ctx.fillRect(barX, barY, barWidth, 10);
+
+                ctx.fillStyle = fighter.isPlayer ? '#22c55e' : '#ef4444';
+                ctx.fillRect(barX, barY, barWidth * (fighter.health / fighter.maxHealth), 10);
+
+                // Name
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#333';
+                ctx.textAlign = 'center';
+                ctx.fillText(fighter.name, fighter.x, barY - 10);
+            });
+
+            // Draw projectiles
+            projectiles.forEach(p => {
+                ctx.font = `${p.size || 30}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.icon, p.x, p.y);
+            });
+
+            // Draw effects
+            effects.forEach(e => {
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = e.life / 15;
+                ctx.fillText(e.icon, e.x, e.y - (15 - e.life) * 2);
+                ctx.globalAlpha = 1;
+            });
+        }
+
+        function endGame(playerWon) {
+            gameRunning = false;
+
+            document.getElementById('resultIcon').textContent = playerWon ? '🏆' : '😢';
+            document.getElementById('resultText').textContent = playerWon ? '승리!' : '패배...';
+            document.getElementById('resultText').className = 'result-text ' + (playerWon ? 'win' : 'lose');
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('startScreen').classList.remove('hide');
+        }
+
+        function initGame() {
+            const playerChars = selectedTeam === 'pokemon' ? pokemons : badDogs;
+            const enemyChars = selectedTeam === 'pokemon' ? badDogs : pokemons;
+
+            const playerData = playerChars[selectedChar];
+            const enemyData = enemyChars[Math.floor(Math.random() * enemyChars.length)];
+
+            player = createFighter(playerData, true, canvas.width * 0.3);
+            enemy = createFighter(enemyData, false, canvas.width * 0.7);
+            enemy.facingRight = false;
+
+            projectiles = [];
+            effects = [];
+            gameRunning = true;
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

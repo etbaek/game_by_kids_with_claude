@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clean House</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: #87CEEB;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 15px;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .clean-meter {
+            position: fixed;
+            top: 70px;
+            left: 15px;
+            right: 15px;
+            max-width: 300px;
+            z-index: 100;
+        }
+
+        .meter-label {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 5px;
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .meter-track {
+            height: 25px;
+            background: #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid #fff;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e);
+            transition: width 0.3s;
+            border-radius: 15px;
+        }
+
+        .room {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 70vh;
+            margin-top: 120px;
+            background: #f5deb3;
+            border: 10px solid #8b4513;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .floor {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30%;
+            background: linear-gradient(0deg, #deb887 0%, #f5deb3 100%);
+        }
+
+        .wall {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70%;
+            background: #ffe4c4;
+        }
+
+        .window {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 80px;
+            background: #87CEEB;
+            border: 8px solid #8b4513;
+            border-radius: 5px;
+        }
+
+        .trash-item {
+            position: absolute;
+            font-size: 35px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+
+        .trash-item:active {
+            transform: scale(1.2);
+        }
+
+        .trash-item.cleaning {
+            animation: cleanUp 0.5s forwards;
+        }
+
+        @keyframes cleanUp {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5) rotate(20deg); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .trash-bin {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 60px;
+            z-index: 100;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .furniture {
+            position: absolute;
+            font-size: 50px;
+            z-index: 5;
+        }
+
+        .sparkle {
+            position: absolute;
+            font-size: 30px;
+            pointer-events: none;
+            animation: sparkle 1s forwards;
+            z-index: 20;
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 1; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+            100% { opacity: 0; transform: scale(0) rotate(360deg); }
+        }
+
+        .complete-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .complete-screen.show {
+            display: flex;
+        }
+
+        .complete-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .complete-title {
+            font-size: 36px;
+            color: #22c55e;
+            margin-bottom: 15px;
+        }
+
+        .complete-message {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .complete-score {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 30px;
+        }
+
+        .next-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 42px;
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #78350f;
+            margin-bottom: 30px;
+        }
+
+        .preview-room {
+            font-size: 60px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #92400e;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .level-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #22c55e;
+            text-shadow: 0 0 20px #22c55e;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+        }
+
+        .level-display.show {
+            animation: levelPop 1.5s forwards;
+        }
+
+        @keyframes levelPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">⭐ 점수: <span id="score">0</span></div>
+        <div class="stat-box">🏠 레벨: <span id="level">1</span></div>
+    </div>
+
+    <div class="clean-meter">
+        <div class="meter-label">🧹 청소 진행률</div>
+        <div class="meter-track">
+            <div class="meter-fill" id="meterFill"></div>
+        </div>
+    </div>
+
+    <div class="room" id="room">
+        <div class="wall"></div>
+        <div class="window"></div>
+        <div class="floor"></div>
+    </div>
+
+    <div class="trash-bin">🗑️</div>
+
+    <div class="level-display" id="levelDisplay">레벨 1</div>
+
+    <div class="complete-screen" id="completeScreen">
+        <div class="complete-icon">✨🏠✨</div>
+        <div class="complete-title">깨끗해졌어요!</div>
+        <div class="complete-message">방이 반짝반짝!</div>
+        <div class="complete-score">+<span id="levelScore">100</span>점</div>
+        <button class="next-btn" onclick="nextLevel()">다음 방 →</button>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">Clean House</div>
+        <div class="subtitle">집을 깨끗하게 치워요!</div>
+        <div class="preview-room">🏠🧹✨</div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            쓰레기를 터치해서 치워요!<br>
+            모든 쓰레기를 치우면 레벨 클리어!
+        </div>
+    </div>
+
+    <script>
+        // Trash items
+        const trashTypes = [
+            '📦', '👕', '🧦', '📰', '🥤', '🍕', '🍔', '🍟',
+            '📱', '🎮', '📚', '✏️', '🧸', '⚽', '🎒', '👟',
+            '🍎', '🍌', '🥪', '🧃', '📝', '🖍️', '🎨', '🪀'
+        ];
+
+        // Furniture (decorations)
+        const furnitureList = [
+            { emoji: '🛋️', x: '10%', y: '65%' },
+            { emoji: '🪴', x: '85%', y: '60%' },
+            { emoji: '📺', x: '5%', y: '40%' },
+            { emoji: '🛏️', x: '70%', y: '70%' }
+        ];
+
+        let score = 0;
+        let level = 1;
+        let trashItems = [];
+        let totalTrash = 0;
+        let cleanedTrash = 0;
+        let gameRunning = false;
+
+        const room = document.getElementById('room');
+
+        function createTrash() {
+            // Clear existing trash
+            document.querySelectorAll('.trash-item').forEach(el => el.remove());
+            trashItems = [];
+            cleanedTrash = 0;
+
+            // Number of trash based on level
+            totalTrash = 5 + level * 3;
+
+            for (let i = 0; i < totalTrash; i++) {
+                const trash = document.createElement('div');
+                trash.className = 'trash-item';
+                trash.textContent = trashTypes[Math.floor(Math.random() * trashTypes.length)];
+
+                // Random position (avoiding furniture areas)
+                trash.style.left = (10 + Math.random() * 75) + '%';
+                trash.style.top = (30 + Math.random() * 60) + '%';
+
+                trash.addEventListener('click', () => cleanTrash(trash));
+                trash.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    cleanTrash(trash);
+                });
+
+                room.appendChild(trash);
+                trashItems.push(trash);
+            }
+
+            updateMeter();
+        }
+
+        function createFurniture() {
+            document.querySelectorAll('.furniture').forEach(el => el.remove());
+
+            furnitureList.forEach(f => {
+                const furniture = document.createElement('div');
+                furniture.className = 'furniture';
+                furniture.textContent = f.emoji;
+                furniture.style.left = f.x;
+                furniture.style.top = f.y;
+                room.appendChild(furniture);
+            });
+        }
+
+        function cleanTrash(trash) {
+            if (!gameRunning || trash.classList.contains('cleaning')) return;
+
+            trash.classList.add('cleaning');
+
+            // Create sparkle effect
+            createSparkle(trash);
+
+            // Update score
+            const points = 10 + level * 5;
+            score += points;
+            cleanedTrash++;
+
+            setTimeout(() => {
+                trash.remove();
+                updateMeter();
+                checkComplete();
+            }, 500);
+
+            updateUI();
+        }
+
+        function createSparkle(element) {
+            const rect = element.getBoundingClientRect();
+            const roomRect = room.getBoundingClientRect();
+
+            for (let i = 0; i < 3; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.textContent = '✨';
+                sparkle.style.left = (rect.left - roomRect.left + Math.random() * 30) + 'px';
+                sparkle.style.top = (rect.top - roomRect.top + Math.random() * 30) + 'px';
+                room.appendChild(sparkle);
+
+                setTimeout(() => sparkle.remove(), 1000);
+            }
+        }
+
+        function updateMeter() {
+            const progress = totalTrash > 0 ? (cleanedTrash / totalTrash) * 100 : 0;
+            document.getElementById('meterFill').style.width = progress + '%';
+        }
+
+        function checkComplete() {
+            if (cleanedTrash >= totalTrash) {
+                // Level complete!
+                gameRunning = false;
+                const levelPoints = 50 + level * 25;
+                score += levelPoints;
+
+                document.getElementById('levelScore').textContent = levelPoints;
+                document.getElementById('completeScreen').classList.add('show');
+
+                updateUI();
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('completeScreen').classList.remove('show');
+            level++;
+
+            // Show level announcement
+            const levelDisplay = document.getElementById('levelDisplay');
+            levelDisplay.textContent = `레벨 ${level}`;
+            levelDisplay.classList.add('show');
+            setTimeout(() => levelDisplay.classList.remove('show'), 1500);
+
+            setTimeout(() => {
+                createTrash();
+                gameRunning = true;
+                updateUI();
+            }, 500);
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            createFurniture();
+            createTrash();
+            gameRunning = true;
+            updateUI();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magic Creatures</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a472a 0%, #2d5a27 50%, #1a472a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Georgia', serif;
+            overflow-x: hidden;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 215, 0, 0.3);
+            border: none;
+            border-radius: 25px;
+            color: #ffd700;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: #ffd700;
+            font-size: 14px;
+            border: 2px solid #8b4513;
+        }
+
+        .game-area {
+            padding: 80px 20px 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .creature-display {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 3px solid #8b4513;
+        }
+
+        .creature-name {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .creature-emoji {
+            font-size: 100px;
+            margin-bottom: 15px;
+            display: block;
+            animation: creatureBounce 2s infinite ease-in-out;
+        }
+
+        @keyframes creatureBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .creature-mood {
+            font-size: 18px;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+
+        .stats-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon {
+            font-size: 20px;
+            width: 30px;
+        }
+
+        .stat-track {
+            flex: 1;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        .stat-fill.hunger { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+        .stat-fill.happiness { background: linear-gradient(90deg, #ec4899, #f9a8d4); }
+        .stat-fill.energy { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+        .stat-fill.health { background: linear-gradient(90deg, #22c55e, #86efac); }
+
+        .stat-fill.low { background: linear-gradient(90deg, #ef4444, #fca5a5); }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            padding: 20px;
+            background: rgba(139, 69, 19, 0.8);
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+            background: rgba(139, 69, 19, 1);
+        }
+
+        .action-btn .icon {
+            font-size: 35px;
+        }
+
+        .creature-select {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .creature-option {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 3px solid transparent;
+            border-radius: 15px;
+            font-size: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .creature-option:hover {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .creature-option.selected {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .creature-option.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .message-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid #ffd700;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+
+        .message-popup.show {
+            display: block;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .message-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .message-text {
+            font-size: 20px;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .message-btn {
+            padding: 10px 30px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border: none;
+            border-radius: 20px;
+            color: #1a1a2e;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .floating-text {
+            position: fixed;
+            pointer-events: none;
+            font-size: 24px;
+            font-weight: bold;
+            animation: floatUp 1s forwards;
+            z-index: 150;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5a27 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 32px;
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .creatures-preview {
+            font-size: 50px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border: none;
+            border-radius: 30px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">💰 <span id="coins">100</span></div>
+        <div class="stat-box">⭐ 레벨 <span id="level">1</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="creature-select" id="creatureSelect"></div>
+
+        <div class="creature-display">
+            <div class="creature-name" id="creatureName">히포그리프</div>
+            <span class="creature-emoji" id="creatureEmoji">🦅</span>
+            <div class="creature-mood" id="creatureMood">기분이 좋아요! 😊</div>
+
+            <div class="stats-bars">
+                <div class="stat-bar">
+                    <span class="stat-icon">🍖</span>
+                    <div class="stat-track">
+                        <div class="stat-fill hunger" id="hungerFill"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <span class="stat-icon">💖</span>
+                    <div class="stat-track">
+                        <div class="stat-fill happiness" id="happinessFill"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <span class="stat-icon">⚡</span>
+                    <div class="stat-track">
+                        <div class="stat-fill energy" id="energyFill"></div>
+                    </div>
+                </div>
+                <div class="stat-bar">
+                    <span class="stat-icon">❤️</span>
+                    <div class="stat-track">
+                        <div class="stat-fill health" id="healthFill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn" onclick="feedCreature()">
+                <span class="icon">🍖</span>
+                <span>먹이주기</span>
+                <span style="font-size: 12px; color: #ffd700;">-10💰</span>
+            </button>
+            <button class="action-btn" onclick="playWithCreature()">
+                <span class="icon">🎾</span>
+                <span>놀아주기</span>
+            </button>
+            <button class="action-btn" onclick="restCreature()">
+                <span class="icon">😴</span>
+                <span>재우기</span>
+            </button>
+            <button class="action-btn" onclick="healCreature()">
+                <span class="icon">💊</span>
+                <span>치료하기</span>
+                <span style="font-size: 12px; color: #ffd700;">-20💰</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="message-popup" id="messagePopup">
+        <div class="message-icon" id="messageIcon">🎉</div>
+        <div class="message-text" id="messageText">새로운 동물 해금!</div>
+        <button class="message-btn" onclick="closeMessage()">확인</button>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">Magic Creatures</div>
+        <div class="subtitle">마법 동물을 돌봐주세요!</div>
+        <div class="creatures-preview">🦅🦄🐉🦎🐦</div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            먹이주기, 놀아주기, 재우기로<br>
+            마법 동물들을 행복하게 해주세요!
+        </div>
+    </div>
+
+    <script>
+        // Magical creatures
+        const creatures = [
+            { id: 'hippogriff', name: '히포그리프', emoji: '🦅', unlockLevel: 1 },
+            { id: 'unicorn', name: '유니콘', emoji: '🦄', unlockLevel: 2 },
+            { id: 'dragon', name: '드래곤', emoji: '🐉', unlockLevel: 3 },
+            { id: 'niffler', name: '니플러', emoji: '🦎', unlockLevel: 4 },
+            { id: 'phoenix', name: '불사조', emoji: '🐦', unlockLevel: 5 },
+            { id: 'thestral', name: '세스트랄', emoji: '🐴', unlockLevel: 6 }
+        ];
+
+        let coins = 100;
+        let level = 1;
+        let exp = 0;
+        let currentCreatureIndex = 0;
+
+        // Creature stats
+        let creatureStats = {};
+
+        function initCreatureStats() {
+            creatures.forEach(c => {
+                creatureStats[c.id] = {
+                    hunger: 80,
+                    happiness: 80,
+                    energy: 80,
+                    health: 100
+                };
+            });
+        }
+
+        function getCurrentStats() {
+            return creatureStats[creatures[currentCreatureIndex].id];
+        }
+
+        function updateUI() {
+            const stats = getCurrentStats();
+            const creature = creatures[currentCreatureIndex];
+
+            document.getElementById('creatureName').textContent = creature.name;
+            document.getElementById('creatureEmoji').textContent = creature.emoji;
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('level').textContent = level;
+
+            // Update stat bars
+            ['hunger', 'happiness', 'energy', 'health'].forEach(stat => {
+                const fill = document.getElementById(stat + 'Fill');
+                fill.style.width = stats[stat] + '%';
+                fill.classList.toggle('low', stats[stat] < 30);
+            });
+
+            // Update mood
+            const avgStats = (stats.hunger + stats.happiness + stats.energy + stats.health) / 4;
+            let mood, moodEmoji;
+            if (avgStats >= 80) {
+                mood = '아주 행복해요!';
+                moodEmoji = '😍';
+            } else if (avgStats >= 60) {
+                mood = '기분이 좋아요!';
+                moodEmoji = '😊';
+            } else if (avgStats >= 40) {
+                mood = '그냥 그래요...';
+                moodEmoji = '😐';
+            } else if (avgStats >= 20) {
+                mood = '기분이 안 좋아요...';
+                moodEmoji = '😢';
+            } else {
+                mood = '힘들어요...';
+                moodEmoji = '😫';
+            }
+            document.getElementById('creatureMood').textContent = mood + ' ' + moodEmoji;
+
+            // Update creature select
+            updateCreatureSelect();
+        }
+
+        function updateCreatureSelect() {
+            const container = document.getElementById('creatureSelect');
+            container.innerHTML = creatures.map((c, i) => {
+                const isLocked = c.unlockLevel > level;
+                const isSelected = i === currentCreatureIndex;
+                return `
+                    <div class="creature-option ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}"
+                         onclick="${isLocked ? '' : `selectCreature(${i})`}">
+                        ${isLocked ? '🔒' : c.emoji}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectCreature(index) {
+            currentCreatureIndex = index;
+            updateUI();
+        }
+
+        function feedCreature() {
+            if (coins < 10) {
+                showMessage('😢', '코인이 부족해요!');
+                return;
+            }
+
+            const stats = getCurrentStats();
+            if (stats.hunger >= 100) {
+                showMessage('🍖', '배가 불러요!');
+                return;
+            }
+
+            coins -= 10;
+            stats.hunger = Math.min(100, stats.hunger + 25);
+            stats.health = Math.min(100, stats.health + 5);
+
+            showFloatingText('🍖 +25', '#f59e0b');
+            gainExp(5);
+            updateUI();
+        }
+
+        function playWithCreature() {
+            const stats = getCurrentStats();
+
+            if (stats.energy < 10) {
+                showMessage('😴', '너무 피곤해요! 재워주세요.');
+                return;
+            }
+
+            stats.happiness = Math.min(100, stats.happiness + 20);
+            stats.energy = Math.max(0, stats.energy - 15);
+            stats.hunger = Math.max(0, stats.hunger - 10);
+
+            coins += 5;
+            showFloatingText('💖 +20  💰+5', '#ec4899');
+            gainExp(10);
+            updateUI();
+        }
+
+        function restCreature() {
+            const stats = getCurrentStats();
+
+            if (stats.energy >= 100) {
+                showMessage('⚡', '에너지가 가득해요!');
+                return;
+            }
+
+            stats.energy = Math.min(100, stats.energy + 30);
+            stats.health = Math.min(100, stats.health + 10);
+
+            showFloatingText('⚡ +30', '#3b82f6');
+            gainExp(5);
+            updateUI();
+        }
+
+        function healCreature() {
+            if (coins < 20) {
+                showMessage('😢', '코인이 부족해요!');
+                return;
+            }
+
+            const stats = getCurrentStats();
+            if (stats.health >= 100) {
+                showMessage('❤️', '이미 건강해요!');
+                return;
+            }
+
+            coins -= 20;
+            stats.health = Math.min(100, stats.health + 40);
+
+            showFloatingText('❤️ +40', '#22c55e');
+            gainExp(10);
+            updateUI();
+        }
+
+        function gainExp(amount) {
+            exp += amount;
+            const expNeeded = level * 50;
+
+            if (exp >= expNeeded) {
+                exp -= expNeeded;
+                level++;
+                coins += 50;
+
+                // Check for new creature unlock
+                const newCreature = creatures.find(c => c.unlockLevel === level);
+                if (newCreature) {
+                    showMessage(newCreature.emoji, `${newCreature.name} 해금!`);
+                } else {
+                    showMessage('🎉', `레벨 ${level} 달성! +50💰`);
+                }
+
+                updateUI();
+            }
+        }
+
+        function showFloatingText(text, color) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.textContent = text;
+            el.style.color = color;
+            el.style.left = '50%';
+            el.style.top = '40%';
+            el.style.transform = 'translateX(-50%)';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function showMessage(icon, text) {
+            document.getElementById('messageIcon').textContent = icon;
+            document.getElementById('messageText').textContent = text;
+            document.getElementById('messagePopup').classList.add('show');
+        }
+
+        function closeMessage() {
+            document.getElementById('messagePopup').classList.remove('show');
+        }
+
+        // Stats decay over time
+        function decayStats() {
+            creatures.forEach(c => {
+                const stats = creatureStats[c.id];
+                stats.hunger = Math.max(0, stats.hunger - 1);
+                stats.happiness = Math.max(0, stats.happiness - 0.5);
+                stats.energy = Math.max(0, stats.energy - 0.3);
+
+                if (stats.hunger < 20 || stats.happiness < 20) {
+                    stats.health = Math.max(0, stats.health - 0.5);
+                }
+            });
+            updateUI();
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initCreatureStats();
+            updateUI();
+            setInterval(decayStats, 3000);
+        }
+    </script>
+</body>
+</html>

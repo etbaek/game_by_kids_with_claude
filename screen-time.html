@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Screen Time</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: #87CEEB;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            transition: background 0.5s;
+        }
+
+        body.inside {
+            background: #2d2d2d;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid #fff;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #86efac);
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .health-fill.low {
+            background: linear-gradient(90deg, #ef4444, #fca5a5);
+        }
+
+        .health-fill.medium {
+            background: linear-gradient(90deg, #f59e0b, #fcd34d);
+        }
+
+        .health-text {
+            color: white;
+            font-size: 14px;
+            margin-top: 5px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .score-display {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            z-index: 100;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 100px 20px 20px;
+        }
+
+        .character {
+            font-size: 80px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+
+        .character.tired {
+            filter: grayscale(50%);
+        }
+
+        .status-text {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            min-height: 60px;
+        }
+
+        body.inside .status-text {
+            color: #aaa;
+        }
+
+        .location-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .location-btn {
+            width: 140px;
+            height: 140px;
+            border-radius: 20px;
+            border: 4px solid;
+            font-size: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .location-btn span {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .location-btn:active {
+            transform: scale(0.95);
+        }
+
+        .location-btn.phone {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            border-color: #6b7280;
+            color: white;
+        }
+
+        .location-btn.phone.active {
+            box-shadow: 0 0 20px #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .location-btn.outside {
+            background: linear-gradient(135deg, #22c55e, #86efac);
+            border-color: #16a34a;
+            color: #166534;
+        }
+
+        .location-btn.outside.active {
+            box-shadow: 0 0 20px #22c55e;
+        }
+
+        .activity-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 150;
+        }
+
+        .activity-popup.show {
+            animation: activityPop 1s ease-out forwards;
+        }
+
+        @keyframes activityPop {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+        }
+
+        .outside-activities {
+            display: none;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .outside-activities.show {
+            display: flex;
+        }
+
+        .activity-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid #22c55e;
+            border-radius: 15px;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .activity-btn:active {
+            transform: scale(0.9);
+            background: #bbf7d0;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+
+        .game-over-message {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tips {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .sun {
+            position: fixed;
+            top: 80px;
+            right: 80px;
+            font-size: 60px;
+            transition: opacity 0.5s;
+        }
+
+        body.inside .sun {
+            opacity: 0;
+        }
+
+        .clouds {
+            position: fixed;
+            top: 100px;
+            width: 100%;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        body.inside .clouds {
+            opacity: 0;
+        }
+
+        .cloud {
+            position: absolute;
+            font-size: 40px;
+            animation: cloudMove 20s linear infinite;
+        }
+
+        @keyframes cloudMove {
+            from { transform: translateX(-100px); }
+            to { transform: translateX(calc(100vw + 100px)); }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="sun">☀️</div>
+    <div class="clouds">
+        <div class="cloud" style="left: 10%; animation-delay: 0s;">☁️</div>
+        <div class="cloud" style="left: 40%; animation-delay: 5s;">☁️</div>
+        <div class="cloud" style="left: 70%; animation-delay: 10s;">☁️</div>
+    </div>
+
+    <div class="game-header">
+        <div class="health-bar">
+            <div class="health-fill" id="healthFill"></div>
+        </div>
+        <div class="health-text">❤️ 체력: <span id="healthText">100</span></div>
+    </div>
+
+    <div class="score-display">⭐ 점수: <span id="score">0</span></div>
+
+    <div class="game-area">
+        <div class="character" id="character">🧒</div>
+        <div class="status-text" id="statusText">무엇을 할까요?</div>
+
+        <div class="location-buttons">
+            <div class="location-btn phone" id="phoneBtn" onclick="usePhone()">
+                📱
+                <span>핸드폰</span>
+            </div>
+            <div class="location-btn outside" id="outsideBtn" onclick="goOutside()">
+                🌳
+                <span>밖에 나가기</span>
+            </div>
+        </div>
+
+        <div class="outside-activities" id="outsideActivities">
+            <button class="activity-btn" onclick="doActivity('⚽', '축구')">⚽</button>
+            <button class="activity-btn" onclick="doActivity('🚴', '자전거')">🚴</button>
+            <button class="activity-btn" onclick="doActivity('🏃', '달리기')">🏃</button>
+            <button class="activity-btn" onclick="doActivity('🎾', '테니스')">🎾</button>
+            <button class="activity-btn" onclick="doActivity('🏊', '수영')">🏊</button>
+            <button class="activity-btn" onclick="doActivity('🧗', '등산')">🧗</button>
+        </div>
+    </div>
+
+    <div class="activity-popup" id="activityPopup"></div>
+
+    <div class="tips" id="tips">💡 핸드폰을 오래 보면 체력이 줄어요!</div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-icon">😵</div>
+        <div class="game-over-title">체력이 다 떨어졌어요!</div>
+        <div class="game-over-message">
+            핸드폰을 너무 많이 봤어요...<br>
+            다음엔 밖에서 더 놀아요!
+        </div>
+        <button class="restart-btn" onclick="restartGame()">다시 시작</button>
+    </div>
+
+    <script>
+        let health = 100;
+        let score = 0;
+        let isUsingPhone = false;
+        let isOutside = false;
+        let phoneTimer = null;
+        let gameRunning = true;
+
+        const phoneMessages = [
+            '📱 유튜브 보는 중...',
+            '📱 게임하는 중...',
+            '📱 틱톡 보는 중...',
+            '📱 인스타 보는 중...',
+            '📱 웹툰 보는 중...'
+        ];
+
+        const outsideMessages = [
+            '🌳 신선한 공기가 좋아요!',
+            '☀️ 햇빛이 따뜻해요!',
+            '🌿 자연이 좋아요!',
+            '🦋 나비가 날아다녀요!',
+            '🐦 새소리가 들려요!'
+        ];
+
+        function updateUI() {
+            document.getElementById('healthText').textContent = Math.max(0, Math.floor(health));
+            document.getElementById('healthFill').style.width = health + '%';
+            document.getElementById('score').textContent = score;
+
+            const healthFill = document.getElementById('healthFill');
+            healthFill.classList.remove('low', 'medium');
+            if (health < 30) {
+                healthFill.classList.add('low');
+            } else if (health < 60) {
+                healthFill.classList.add('medium');
+            }
+
+            // Character appearance
+            const character = document.getElementById('character');
+            if (health < 30) {
+                character.textContent = '😫';
+                character.classList.add('tired');
+            } else if (health < 60) {
+                character.textContent = '😐';
+                character.classList.remove('tired');
+            } else {
+                character.textContent = '😊';
+                character.classList.remove('tired');
+            }
+        }
+
+        function usePhone() {
+            if (!gameRunning) return;
+
+            isUsingPhone = true;
+            isOutside = false;
+            document.body.classList.add('inside');
+            document.getElementById('phoneBtn').classList.add('active');
+            document.getElementById('outsideBtn').classList.remove('active');
+            document.getElementById('outsideActivities').classList.remove('show');
+
+            updateStatus(phoneMessages[Math.floor(Math.random() * phoneMessages.length)]);
+            showPopup('📱');
+
+            // Start draining health
+            if (phoneTimer) clearInterval(phoneTimer);
+            phoneTimer = setInterval(() => {
+                if (!isUsingPhone || !gameRunning) {
+                    clearInterval(phoneTimer);
+                    return;
+                }
+
+                health -= 2;
+                score += 1; // Still get some points but health drops
+
+                if (health <= 0) {
+                    health = 0;
+                    gameOver();
+                }
+
+                updateUI();
+                updateTips();
+            }, 500);
+        }
+
+        function goOutside() {
+            if (!gameRunning) return;
+
+            isUsingPhone = false;
+            isOutside = true;
+            document.body.classList.remove('inside');
+            document.getElementById('phoneBtn').classList.remove('active');
+            document.getElementById('outsideBtn').classList.add('active');
+            document.getElementById('outsideActivities').classList.add('show');
+
+            if (phoneTimer) clearInterval(phoneTimer);
+
+            updateStatus(outsideMessages[Math.floor(Math.random() * outsideMessages.length)]);
+            showPopup('🌳');
+
+            updateTips();
+        }
+
+        function doActivity(emoji, name) {
+            if (!gameRunning || !isOutside) return;
+
+            // Recover health and get points
+            const healthGain = 10 + Math.random() * 10;
+            const pointGain = 20 + Math.floor(Math.random() * 30);
+
+            health = Math.min(100, health + healthGain);
+            score += pointGain;
+
+            updateStatus(`${emoji} ${name} 하는 중! +${Math.floor(healthGain)} 체력`);
+            showPopup(emoji);
+            updateUI();
+            updateTips();
+        }
+
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function showPopup(emoji) {
+            const popup = document.getElementById('activityPopup');
+            popup.textContent = emoji;
+            popup.classList.remove('show');
+            void popup.offsetWidth;
+            popup.classList.add('show');
+        }
+
+        function updateTips() {
+            const tips = document.getElementById('tips');
+            if (health < 30) {
+                tips.textContent = '⚠️ 체력이 낮아요! 밖에 나가서 놀아요!';
+                tips.style.background = 'rgba(239, 68, 68, 0.8)';
+            } else if (isUsingPhone) {
+                tips.textContent = '📱 핸드폰을 보면 체력이 줄어요...';
+                tips.style.background = 'rgba(245, 158, 11, 0.8)';
+            } else if (isOutside) {
+                tips.textContent = '🌳 활동을 선택해서 체력을 회복하세요!';
+                tips.style.background = 'rgba(34, 197, 94, 0.8)';
+            } else {
+                tips.textContent = '💡 핸드폰을 오래 보면 체력이 줄어요!';
+                tips.style.background = 'rgba(0, 0, 0, 0.6)';
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            isUsingPhone = false;
+            if (phoneTimer) clearInterval(phoneTimer);
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function restartGame() {
+            health = 100;
+            score = 0;
+            isUsingPhone = false;
+            isOutside = false;
+            gameRunning = true;
+
+            document.body.classList.remove('inside');
+            document.getElementById('phoneBtn').classList.remove('active');
+            document.getElementById('outsideBtn').classList.remove('active');
+            document.getElementById('outsideActivities').classList.remove('show');
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('statusText').textContent = '무엇을 할까요?';
+
+            updateUI();
+            updateTips();
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>

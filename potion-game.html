@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Potion Making</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Georgia', serif;
+            overflow: hidden;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(138, 43, 226, 0.3);
+            border: none;
+            border-radius: 25px;
+            color: #dda0dd;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: #dda0dd;
+            font-size: 16px;
+            border: 2px solid #8b008b;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 80px 20px 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .recipe-display {
+            background: rgba(139, 69, 19, 0.8);
+            border: 3px solid #8b4513;
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recipe-title {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .recipe-ingredients {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .recipe-item {
+            font-size: 30px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .recipe-item.added {
+            opacity: 0.3;
+        }
+
+        .cauldron-area {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .cauldron {
+            font-size: 120px;
+            position: relative;
+        }
+
+        .cauldron-contents {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 80px;
+        }
+
+        .cauldron-item {
+            font-size: 25px;
+            animation: bubble 1s infinite ease-in-out;
+        }
+
+        @keyframes bubble {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .bubbles {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            font-size: 20px;
+            animation: bubbleUp 2s infinite;
+        }
+
+        @keyframes bubbleUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.5); }
+        }
+
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .ingredient {
+            width: 60px;
+            height: 60px;
+            background: rgba(139, 69, 19, 0.6);
+            border: 2px solid #8b4513;
+            border-radius: 15px;
+            font-size: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ingredient:active {
+            transform: scale(0.9);
+            background: rgba(139, 69, 19, 0.9);
+        }
+
+        .ingredient.wrong {
+            animation: wrongShake 0.3s;
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .mix-btn {
+            background: linear-gradient(135deg, #8b008b, #4b0082);
+            color: white;
+        }
+
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #ffd700;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+
+        .result-popup.show {
+            display: block;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .result-icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+        }
+
+        .result-text {
+            font-size: 28px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .result-desc {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .result-points {
+            font-size: 24px;
+            color: #22c55e;
+            margin-bottom: 20px;
+        }
+
+        .next-btn {
+            padding: 12px 30px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 36px;
+            color: #dda0dd;
+            text-shadow: 0 0 20px #8b008b;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .potion-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: potionBubble 2s infinite;
+        }
+
+        @keyframes potionBubble {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #8b008b, #4b0082);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">⭐ 점수: <span id="score">0</span></div>
+        <div class="stat-box">🧪 레벨: <span id="level">1</span></div>
+    </div>
+
+    <div class="game-area">
+        <div class="recipe-display">
+            <div class="recipe-title" id="potionName">폴리주스 물약</div>
+            <div class="recipe-ingredients" id="recipeIngredients"></div>
+        </div>
+
+        <div class="cauldron-area">
+            <div class="bubbles" id="bubbles"></div>
+            <div class="cauldron">🫕</div>
+            <div class="cauldron-contents" id="cauldronContents"></div>
+        </div>
+
+        <div class="ingredients-grid" id="ingredientsGrid"></div>
+
+        <div class="action-buttons">
+            <button class="action-btn reset-btn" onclick="resetCauldron()">↺ 다시</button>
+            <button class="action-btn mix-btn" onclick="mixPotion()">🧪 완성!</button>
+        </div>
+    </div>
+
+    <div class="result-popup" id="resultPopup">
+        <div class="result-icon" id="resultIcon">🧪</div>
+        <div class="result-text" id="resultText">성공!</div>
+        <div class="result-desc" id="resultDesc">폴리주스 물약 완성!</div>
+        <div class="result-points" id="resultPoints">+100점</div>
+        <button class="next-btn" onclick="nextPotion()">다음 물약 →</button>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">Potion Making</div>
+        <div class="subtitle">마법 물약을 만들어라!</div>
+        <div class="potion-icon">🧪</div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            레시피에 맞는 재료를 순서대로 넣어요!<br>
+            재료를 클릭해서 가마솥에 넣으세요.
+        </div>
+    </div>
+
+    <script>
+        // Potions and recipes
+        const potions = [
+            {
+                name: '폴리주스 물약',
+                icon: '🧪',
+                ingredients: ['🌿', '🐍', '💧', '✨'],
+                desc: '다른 사람으로 변신!'
+            },
+            {
+                name: '펠릭스 펠리시스',
+                icon: '🌟',
+                ingredients: ['⭐', '🍀', '💛', '🌙'],
+                desc: '행운의 물약!'
+            },
+            {
+                name: '베리타세럼',
+                icon: '💎',
+                ingredients: ['💧', '🤍', '👁️', '❄️'],
+                desc: '진실의 물약!'
+            },
+            {
+                name: '사랑의 묘약',
+                icon: '💕',
+                ingredients: ['❤️', '🌹', '💖', '🦋'],
+                desc: '사랑에 빠지게 하는 물약!'
+            },
+            {
+                name: '치료 물약',
+                icon: '💚',
+                ingredients: ['🌿', '🍄', '💧', '🌸'],
+                desc: '상처를 치료하는 물약!'
+            },
+            {
+                name: '투명 물약',
+                icon: '👻',
+                ingredients: ['💨', '🤍', '🌫️', '⚪'],
+                desc: '몸이 투명해지는 물약!'
+            },
+            {
+                name: '힘의 물약',
+                icon: '💪',
+                ingredients: ['🔥', '⚡', '💎', '🦁'],
+                desc: '힘이 세지는 물약!'
+            },
+            {
+                name: '수면 물약',
+                icon: '😴',
+                ingredients: ['🌙', '💤', '🌸', '💜'],
+                desc: '깊은 잠에 빠지게 하는 물약!'
+            }
+        ];
+
+        // All possible ingredients
+        const allIngredients = ['🌿', '🐍', '💧', '✨', '⭐', '🍀', '💛', '🌙',
+                                '🤍', '👁️', '❄️', '❤️', '🌹', '💖', '🦋', '🍄',
+                                '🌸', '💨', '🌫️', '⚪', '🔥', '⚡', '💎', '🦁', '💤', '💜'];
+
+        let gameRunning = false;
+        let score = 0;
+        let level = 1;
+        let currentPotion = null;
+        let addedIngredients = [];
+        let currentStep = 0;
+
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function selectNewPotion() {
+            currentPotion = potions[Math.floor(Math.random() * potions.length)];
+            addedIngredients = [];
+            currentStep = 0;
+
+            // Display recipe
+            document.getElementById('potionName').textContent = currentPotion.name;
+            updateRecipeDisplay();
+
+            // Create ingredient grid with correct + random ingredients
+            const correctIngredients = [...currentPotion.ingredients];
+            const otherIngredients = allIngredients.filter(i => !correctIngredients.includes(i));
+            const randomOthers = shuffle(otherIngredients).slice(0, 8 - correctIngredients.length);
+            const gridIngredients = shuffle([...correctIngredients, ...randomOthers]);
+
+            const grid = document.getElementById('ingredientsGrid');
+            grid.innerHTML = gridIngredients.map(ing =>
+                `<div class="ingredient" onclick="addIngredient('${ing}')">${ing}</div>`
+            ).join('');
+
+            updateCauldron();
+            createBubbles();
+        }
+
+        function updateRecipeDisplay() {
+            const container = document.getElementById('recipeIngredients');
+            container.innerHTML = currentPotion.ingredients.map((ing, i) =>
+                `<div class="recipe-item ${i < currentStep ? 'added' : ''}">${ing}</div>`
+            ).join('');
+        }
+
+        function addIngredient(ingredient) {
+            if (!gameRunning) return;
+
+            const expectedIngredient = currentPotion.ingredients[currentStep];
+
+            if (ingredient === expectedIngredient) {
+                // Correct!
+                addedIngredients.push(ingredient);
+                currentStep++;
+                updateRecipeDisplay();
+                updateCauldron();
+
+                if (currentStep === currentPotion.ingredients.length) {
+                    // All ingredients added!
+                    setTimeout(() => mixPotion(), 500);
+                }
+            } else {
+                // Wrong ingredient
+                const ingredients = document.querySelectorAll('.ingredient');
+                ingredients.forEach(el => {
+                    if (el.textContent === ingredient) {
+                        el.classList.add('wrong');
+                        setTimeout(() => el.classList.remove('wrong'), 300);
+                    }
+                });
+            }
+        }
+
+        function updateCauldron() {
+            const container = document.getElementById('cauldronContents');
+            container.innerHTML = addedIngredients.map((ing, i) =>
+                `<span class="cauldron-item" style="animation-delay: ${i * 0.2}s">${ing}</span>`
+            ).join('');
+        }
+
+        function createBubbles() {
+            const container = document.getElementById('bubbles');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.textContent = '🫧';
+                bubble.style.left = (Math.random() * 60 - 30) + 'px';
+                bubble.style.animationDelay = (Math.random() * 2) + 's';
+                container.appendChild(bubble);
+            }
+        }
+
+        function mixPotion() {
+            if (currentStep < currentPotion.ingredients.length) {
+                // Not all ingredients added
+                return;
+            }
+
+            // Success!
+            const points = 50 + level * 25;
+            score += points;
+
+            if (score >= level * 200) {
+                level++;
+            }
+
+            document.getElementById('resultIcon').textContent = currentPotion.icon;
+            document.getElementById('resultText').textContent = '성공!';
+            document.getElementById('resultDesc').textContent = currentPotion.name + ' 완성! ' + currentPotion.desc;
+            document.getElementById('resultPoints').textContent = '+' + points + '점';
+            document.getElementById('resultPopup').classList.add('show');
+
+            updateUI();
+        }
+
+        function resetCauldron() {
+            addedIngredients = [];
+            currentStep = 0;
+            updateRecipeDisplay();
+            updateCauldron();
+        }
+
+        function nextPotion() {
+            document.getElementById('resultPopup').classList.remove('show');
+            selectNewPotion();
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function initGame() {
+            score = 0;
+            level = 1;
+            gameRunning = true;
+            updateUI();
+            selectNewPotion();
+        }
+    </script>
+</body>
+</html>

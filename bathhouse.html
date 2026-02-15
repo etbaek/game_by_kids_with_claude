@@ -664,6 +664,171 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        .stomachache-warning {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            z-index: 100;
+            display: none;
+        }
+
+        .stomachache-warning.show {
+            display: block;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0); }
+            25% { transform: translateX(-50%) rotate(-3deg); }
+            75% { transform: translateX(-50%) rotate(3deg); }
+        }
+
+        .bathroom-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px 25px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            z-index: 100;
+            display: none;
+        }
+
+        .bathroom-btn.show {
+            display: block;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .bathroom-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .bathroom-screen.show {
+            display: flex;
+        }
+
+        .toilet {
+            font-size: 120px;
+            margin-bottom: 20px;
+        }
+
+        .bathroom-character {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .bathroom-character.pushing {
+            animation: push 0.2s;
+        }
+
+        @keyframes push {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.9) translateY(5px); }
+        }
+
+        .poop-progress {
+            width: 250px;
+            height: 40px;
+            background: #ddd;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 4px solid #8b4513;
+            margin-bottom: 20px;
+        }
+
+        .poop-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #92400e, #78350f);
+            transition: width 0.1s;
+            border-radius: 20px;
+        }
+
+        .tap-instruction {
+            font-size: 24px;
+            color: #4c1d95;
+            margin-bottom: 30px;
+        }
+
+        .tap-area {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            cursor: pointer;
+            border: 6px solid #d97706;
+            transition: transform 0.1s;
+        }
+
+        .tap-area:active {
+            transform: scale(0.95);
+        }
+
+        .poop-complete {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            display: none;
+            z-index: 210;
+        }
+
+        .poop-complete.show {
+            display: block;
+            animation: poopDone 1s forwards;
+        }
+
+        @keyframes poopDone {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.5); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .bathroom-done-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            display: none;
+        }
+
+        .bathroom-done-btn.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -739,7 +904,21 @@
         <div class="room-score">⭐ <span id="roomScore">0</span>점</div>
         <div class="room-tip" id="roomTip">냉장고🧊를 터치해서 음식을 꺼내고, 음식을 터치해서 먹어요!</div>
         <div class="eat-message" id="eatMessage">맛있다! +10점</div>
+        <div class="stomachache-warning" id="stomachacheWarning">🤢 배가 아파요! 화장실 가야해!</div>
+        <button class="bathroom-btn" id="bathroomBtn" onclick="goToBathroom()">🚽 화장실</button>
         <button class="room-exit-btn" onclick="exitHome()">🚪 나가기</button>
+    </div>
+
+    <div class="bathroom-screen" id="bathroomScreen">
+        <div class="toilet">🚽</div>
+        <div class="bathroom-character" id="bathroomCharacter">👩</div>
+        <div class="poop-progress">
+            <div class="poop-fill" id="poopFill"></div>
+        </div>
+        <div class="tap-instruction">빨리 눌러요!</div>
+        <div class="tap-area" id="tapArea" onclick="tapPoop()" ontouchstart="tapPoop()">💪</div>
+        <div class="poop-complete" id="poopComplete">💩</div>
+        <button class="bathroom-done-btn" id="bathroomDoneBtn" onclick="exitBathroom()">✨ 시원해요! 나가기</button>
     </div>
 
     <div class="start-screen" id="startScreen">
@@ -874,6 +1053,10 @@
         let roomScore = 0;
         let foodItems = [];
         let insideHome = false;
+        let foodEaten = 0;
+        let hasStomachache = false;
+        let poopProgress = 0;
+        let inBathroom = false;
 
         function stayHome() {
             // Go inside the house
@@ -889,7 +1072,13 @@
             document.querySelectorAll('.food-item').forEach(f => f.remove());
             foodItems = [];
             roomScore = 0;
+            foodEaten = 0;
+            hasStomachache = false;
             document.getElementById('roomScore').textContent = roomScore;
+
+            // Hide stomachache UI
+            document.getElementById('stomachacheWarning').classList.remove('show');
+            document.getElementById('bathroomBtn').classList.remove('show');
 
             // Show tip
             document.getElementById('roomTip').classList.remove('hide');
@@ -950,10 +1139,12 @@
 
         function eatFood(food) {
             if (food.classList.contains('eating')) return;
+            if (hasStomachache) return; // Can't eat when stomachache
 
             food.classList.add('eating');
             roomScore += 10;
             score += 10;
+            foodEaten++;
             document.getElementById('roomScore').textContent = roomScore;
             updateUI();
 
@@ -970,6 +1161,80 @@
                 food.remove();
                 foodItems = foodItems.filter(f => f !== food);
             }, 500);
+
+            // Check for stomachache (after eating 8+ foods)
+            if (foodEaten >= 8 && !hasStomachache) {
+                triggerStomachache();
+            }
+        }
+
+        function triggerStomachache() {
+            hasStomachache = true;
+            document.getElementById('stomachacheWarning').classList.add('show');
+            document.getElementById('bathroomBtn').classList.add('show');
+            document.getElementById('roomTip').textContent = '🚽 화장실 버튼을 눌러요!';
+            document.getElementById('roomTip').classList.remove('hide');
+        }
+
+        function goToBathroom() {
+            if (!hasStomachache) return;
+
+            document.getElementById('insideHomeScreen').classList.remove('show');
+
+            // Set character
+            const personList = selectedGender === 'woman' ? women : men;
+            const emoji = personList[Math.floor(Math.random() * personList.length)];
+            document.getElementById('bathroomCharacter').textContent = emoji;
+
+            // Reset bathroom state
+            poopProgress = 0;
+            document.getElementById('poopFill').style.width = '0%';
+            document.getElementById('poopComplete').classList.remove('show');
+            document.getElementById('bathroomDoneBtn').classList.remove('show');
+            document.getElementById('tapArea').style.display = 'flex';
+
+            document.getElementById('bathroomScreen').classList.add('show');
+            inBathroom = true;
+        }
+
+        function tapPoop() {
+            if (!inBathroom || poopProgress >= 100) return;
+
+            poopProgress += 5;
+            document.getElementById('poopFill').style.width = poopProgress + '%';
+
+            // Character push animation
+            const char = document.getElementById('bathroomCharacter');
+            char.classList.remove('pushing');
+            void char.offsetWidth;
+            char.classList.add('pushing');
+
+            // Complete!
+            if (poopProgress >= 100) {
+                document.getElementById('tapArea').style.display = 'none';
+                document.getElementById('poopComplete').classList.add('show');
+
+                setTimeout(() => {
+                    document.getElementById('bathroomDoneBtn').classList.add('show');
+                }, 1000);
+
+                score += 20;
+                updateUI();
+            }
+        }
+
+        function exitBathroom() {
+            document.getElementById('bathroomScreen').classList.remove('show');
+            inBathroom = false;
+            hasStomachache = false;
+            foodEaten = 0;
+
+            // Reset UI
+            document.getElementById('stomachacheWarning').classList.remove('show');
+            document.getElementById('bathroomBtn').classList.remove('show');
+            document.getElementById('roomTip').textContent = '냉장고🧊를 터치해서 음식을 꺼내고, 음식을 터치해서 먹어요!';
+
+            document.getElementById('insideHomeScreen').classList.add('show');
         }
 
         function exitHome() {

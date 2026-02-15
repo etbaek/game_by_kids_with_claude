@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bathhouse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 15px;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 80px 20px 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .bathhouse {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .bath {
+            width: 140px;
+            height: 180px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 5px solid;
+        }
+
+        .bath:active {
+            transform: scale(0.95);
+        }
+
+        .bath.women {
+            background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+            border-color: #ec4899;
+        }
+
+        .bath.men {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #3b82f6;
+        }
+
+        .bath-label {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .bath.women .bath-label { color: #db2777; }
+        .bath.men .bath-label { color: #2563eb; }
+
+        .bath-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+
+        .bath-door {
+            width: 60px;
+            height: 40px;
+            background: #8b4513;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+        }
+
+        .bath-door::after {
+            content: '🚪';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 25px;
+        }
+
+        .waiting-area {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 150px;
+            width: 100%;
+        }
+
+        .waiting-label {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .current-person {
+            font-size: 80px;
+            margin-bottom: 10px;
+            animation: personBounce 1s infinite ease-in-out;
+        }
+
+        @keyframes personBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .person-type {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .person-type.woman { color: #db2777; }
+        .person-type.man { color: #2563eb; }
+
+        .guard-area {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .guard {
+            font-size: 60px;
+        }
+
+        .guard-speech {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 15px;
+            border: 2px solid #333;
+            font-size: 14px;
+            max-width: 150px;
+            position: relative;
+        }
+
+        .guard-speech::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            bottom: 10px;
+            border: 8px solid transparent;
+            border-right-color: white;
+        }
+
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px 50px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+
+        .result-popup.show {
+            display: block;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .result-popup.correct {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border: 4px solid #22c55e;
+        }
+
+        .result-popup.wrong {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border: 4px solid #ef4444;
+        }
+
+        .result-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        .result-text {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .result-popup.correct .result-text { color: #16a34a; }
+        .result-popup.wrong .result-text { color: #dc2626; }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 42px;
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .preview {
+            font-size: 50px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .instructions .pink { color: #db2777; }
+        .instructions .blue { color: #2563eb; }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+
+        .game-over-score {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .lives {
+            display: flex;
+            gap: 5px;
+        }
+
+        .life {
+            font-size: 24px;
+        }
+
+        .life.lost {
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">⭐ <span id="score">0</span>점</div>
+        <div class="stat-box">
+            <div class="lives" id="lives">
+                <span class="life">❤️</span>
+                <span class="life">❤️</span>
+                <span class="life">❤️</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="waiting-area">
+            <div class="waiting-label">다음 손님이에요!</div>
+            <div class="current-person" id="currentPerson">👩</div>
+            <div class="person-type woman" id="personType">여자</div>
+        </div>
+
+        <div class="bathhouse">
+            <div class="bath women" onclick="enterBath('women')">
+                <div class="bath-label">여탕</div>
+                <div class="bath-icon">♀️</div>
+                <div class="bath-door"></div>
+            </div>
+            <div class="bath men" onclick="enterBath('men')">
+                <div class="bath-label">남탕</div>
+                <div class="bath-icon">♂️</div>
+                <div class="bath-door"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="guard-area">
+        <div class="guard">👨‍🦳</div>
+        <div class="guard-speech" id="guardSpeech">어서오세요~</div>
+    </div>
+
+    <div class="result-popup" id="resultPopup">
+        <div class="result-icon" id="resultIcon">✅</div>
+        <div class="result-text" id="resultText">잘했어요!</div>
+    </div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">🛁 목욕탕</div>
+        <div class="subtitle">손님을 올바른 곳으로 안내해요!</div>
+        <div class="preview">👩➡️🚺 👨➡️🚹</div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            <span class="pink">👩 여자</span>는 <span class="pink">여탕</span>으로!<br>
+            <span class="blue">👨 남자</span>는 <span class="blue">남탕</span>으로!<br><br>
+            잘못 보내면 아저씨가 혼내요! 😠
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-icon">😵</div>
+        <div class="game-over-title">게임 오버!</div>
+        <div class="game-over-score">점수: <span id="finalScore">0</span></div>
+        <button class="restart-btn" onclick="restartGame()">다시 하기</button>
+    </div>
+
+    <script>
+        const women = ['👩', '👧', '👵', '👩‍🦰', '👩‍🦱', '👱‍♀️', '👩‍🦳', '🧕'];
+        const men = ['👨', '👦', '👴', '👨‍🦰', '👨‍🦱', '👱‍♂️', '👨‍🦳', '🧔'];
+
+        const correctMessages = [
+            '잘했어요! 👍',
+            '정확해요! ✨',
+            '훌륭해요! 🎉',
+            '바로 그거예요! 👏',
+            '완벽해요! ⭐'
+        ];
+
+        const wrongMessages = [
+            '거기 아니에요!! 😠',
+            '뭐하는 거예요?! 😡',
+            '잘못 들어갔어요!! 🚫',
+            '안 돼요!! ❌',
+            '어디로 가는 거예요?! 😤'
+        ];
+
+        let score = 0;
+        let lives = 3;
+        let currentPersonGender = '';
+        let gameRunning = false;
+
+        function nextPerson() {
+            // Random gender
+            const isWoman = Math.random() < 0.5;
+            currentPersonGender = isWoman ? 'woman' : 'man';
+
+            const personList = isWoman ? women : men;
+            const emoji = personList[Math.floor(Math.random() * personList.length)];
+
+            document.getElementById('currentPerson').textContent = emoji;
+            document.getElementById('personType').textContent = isWoman ? '여자' : '남자';
+            document.getElementById('personType').className = 'person-type ' + currentPersonGender;
+
+            document.getElementById('guardSpeech').textContent = '어서오세요~';
+        }
+
+        function enterBath(bath) {
+            if (!gameRunning) return;
+
+            const isCorrect = (bath === 'women' && currentPersonGender === 'woman') ||
+                             (bath === 'men' && currentPersonGender === 'man');
+
+            if (isCorrect) {
+                // Correct!
+                score += 10;
+                showResult(true);
+                document.getElementById('guardSpeech').textContent =
+                    correctMessages[Math.floor(Math.random() * correctMessages.length)];
+            } else {
+                // Wrong!
+                lives--;
+                updateLives();
+                showResult(false);
+                document.getElementById('guardSpeech').textContent =
+                    wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
+
+                if (lives <= 0) {
+                    setTimeout(() => gameOver(), 1000);
+                    return;
+                }
+            }
+
+            updateUI();
+
+            setTimeout(() => {
+                hideResult();
+                nextPerson();
+            }, 1000);
+        }
+
+        function showResult(correct) {
+            const popup = document.getElementById('resultPopup');
+            popup.className = 'result-popup show ' + (correct ? 'correct' : 'wrong');
+            document.getElementById('resultIcon').textContent = correct ? '✅' : '❌';
+            document.getElementById('resultText').textContent = correct ? '잘했어요!' : '틀렸어요!';
+        }
+
+        function hideResult() {
+            document.getElementById('resultPopup').classList.remove('show');
+        }
+
+        function updateLives() {
+            const livesEl = document.querySelectorAll('.life');
+            livesEl.forEach((el, i) => {
+                el.classList.toggle('lost', i >= lives);
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            initGame();
+        }
+
+        function initGame() {
+            score = 0;
+            lives = 3;
+            gameRunning = true;
+            updateLives();
+            updateUI();
+            nextPerson();
+        }
+    </script>
+</body>
+</html>

@@ -355,6 +355,214 @@
         .life.lost {
             opacity: 0.3;
         }
+
+        .character-select {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .char-option {
+            width: 100px;
+            height: 120px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 4px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .char-option.woman {
+            background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+        }
+
+        .char-option.man {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        }
+
+        .char-option.selected {
+            border-color: #ffd700;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .char-option .icon {
+            font-size: 50px;
+            margin-bottom: 5px;
+        }
+
+        .char-option .label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .char-option.woman .label { color: #db2777; }
+        .char-option.man .label { color: #2563eb; }
+
+        .home-btn {
+            width: 100px;
+            height: 120px;
+            background: linear-gradient(135deg, #fef3c7, #fcd34d);
+            border: 5px solid #f59e0b;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+
+        .home-btn:active {
+            transform: scale(0.95);
+        }
+
+        .home-btn .home-icon {
+            font-size: 40px;
+        }
+
+        .home-btn .home-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #92400e;
+            margin-top: 5px;
+        }
+
+        .home-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 180;
+        }
+
+        .home-screen.show {
+            display: flex;
+        }
+
+        .home-house {
+            font-size: 120px;
+            margin-bottom: 20px;
+        }
+
+        .home-character {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: homeRelax 2s infinite ease-in-out;
+        }
+
+        @keyframes homeRelax {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .home-message {
+            font-size: 28px;
+            color: #92400e;
+            margin-bottom: 30px;
+        }
+
+        .home-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .home-action-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        .go-bath-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .stay-home-btn {
+            background: rgba(0, 0, 0, 0.2);
+            color: #92400e;
+        }
+
+        .inside-home-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #fef3c7 0%, #f5deb3 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 190;
+        }
+
+        .inside-home-screen.show {
+            display: flex;
+        }
+
+        .room-bg {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        .home-furniture {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .furniture-item {
+            font-size: 50px;
+        }
+
+        .resting-character {
+            font-size: 80px;
+            animation: sleeping 2s infinite ease-in-out;
+        }
+
+        @keyframes sleeping {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        .zzz {
+            font-size: 40px;
+            animation: zzz 1s infinite;
+        }
+
+        @keyframes zzz {
+            0%, 100% { opacity: 0.5; transform: translateY(0); }
+            50% { opacity: 1; transform: translateY(-10px); }
+        }
+
+        .inside-message {
+            font-size: 24px;
+            color: #92400e;
+            margin: 20px 0;
+        }
+
+        .exit-home-btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -373,7 +581,7 @@
 
     <div class="game-area">
         <div class="waiting-area">
-            <div class="waiting-label">다음 손님이에요!</div>
+            <div class="waiting-label">나는 어디로 가야 할까?</div>
             <div class="current-person" id="currentPerson">👩</div>
             <div class="person-type woman" id="personType">여자</div>
         </div>
@@ -390,6 +598,11 @@
                 <div class="bath-door"></div>
             </div>
         </div>
+
+        <div class="home-btn" onclick="goHome()">
+            <div class="home-icon">🏠</div>
+            <div class="home-label">집 가기</div>
+        </div>
     </div>
 
     <div class="guard-area">
@@ -402,15 +615,50 @@
         <div class="result-text" id="resultText">잘했어요!</div>
     </div>
 
+    <div class="home-screen" id="homeScreen">
+        <div class="home-house">🏠</div>
+        <div class="home-character" id="homeCharacter">👩</div>
+        <div class="home-message">집에 도착했어요!</div>
+        <div class="home-buttons">
+            <button class="home-action-btn go-bath-btn" onclick="goToBath()">🛁 목욕탕 가기</button>
+            <button class="home-action-btn stay-home-btn" onclick="stayHome()">🚪 집에 들어가기</button>
+        </div>
+    </div>
+
+    <div class="inside-home-screen" id="insideHomeScreen">
+        <div class="room-bg">🪟</div>
+        <div class="home-furniture">
+            <div class="furniture-item">🛋️</div>
+            <div class="furniture-item">📺</div>
+            <div class="furniture-item">🪴</div>
+        </div>
+        <div class="resting-character" id="restingCharacter">👩</div>
+        <div class="zzz">💤</div>
+        <div class="inside-message">편하게 쉬는 중... +5점!</div>
+        <button class="exit-home-btn" onclick="exitHome()">🚪 밖으로 나가기</button>
+    </div>
+
     <div class="start-screen" id="startScreen">
         <div class="title">🛁 목욕탕</div>
-        <div class="subtitle">손님을 올바른 곳으로 안내해요!</div>
-        <div class="preview">👩➡️🚺 👨➡️🚹</div>
+        <div class="subtitle">캐릭터를 선택하세요!</div>
+
+        <div class="character-select">
+            <div class="char-option woman selected" data-gender="woman" onclick="selectCharacter('woman')">
+                <div class="icon">👩</div>
+                <div class="label">여자</div>
+            </div>
+            <div class="char-option man" data-gender="man" onclick="selectCharacter('man')">
+                <div class="icon">👨</div>
+                <div class="label">남자</div>
+            </div>
+        </div>
+
         <button class="start-btn" onclick="startGame()">시작!</button>
         <div class="instructions">
-            <span class="pink">👩 여자</span>는 <span class="pink">여탕</span>으로!<br>
-            <span class="blue">👨 남자</span>는 <span class="blue">남탕</span>으로!<br><br>
-            잘못 보내면 아저씨가 혼내요! 😠
+            내 캐릭터를 선택하고 올바른 곳으로 가요!<br>
+            <span class="pink">👩 여자</span>면 <span class="pink">여탕</span>으로!<br>
+            <span class="blue">👨 남자</span>면 <span class="blue">남탕</span>으로!<br><br>
+            잘못 들어가면 아저씨가 혼내요! 😠
         </div>
     </div>
 
@@ -444,21 +692,29 @@
         let score = 0;
         let lives = 3;
         let currentPersonGender = '';
+        let selectedGender = 'woman';
         let gameRunning = false;
 
-        function nextPerson() {
-            // Random gender
-            const isWoman = Math.random() < 0.5;
-            currentPersonGender = isWoman ? 'woman' : 'man';
+        function selectCharacter(gender) {
+            selectedGender = gender;
+            document.querySelectorAll('.char-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`.char-option.${gender}`).classList.add('selected');
+        }
 
-            const personList = isWoman ? women : men;
+        function nextPerson() {
+            // Use selected gender only
+            currentPersonGender = selectedGender;
+
+            const personList = selectedGender === 'woman' ? women : men;
             const emoji = personList[Math.floor(Math.random() * personList.length)];
 
             document.getElementById('currentPerson').textContent = emoji;
-            document.getElementById('personType').textContent = isWoman ? '여자' : '남자';
+            document.getElementById('personType').textContent = selectedGender === 'woman' ? '여자' : '남자';
             document.getElementById('personType').className = 'person-type ' + currentPersonGender;
 
-            document.getElementById('guardSpeech').textContent = '어서오세요~';
+            document.getElementById('guardSpeech').textContent = '어서오세요~ 어디로 갈까요?';
         }
 
         function enterBath(bath) {
@@ -493,6 +749,40 @@
                 hideResult();
                 nextPerson();
             }, 1000);
+        }
+
+        function goHome() {
+            if (!gameRunning) return;
+
+            // Show home screen
+            const personList = selectedGender === 'woman' ? women : men;
+            const emoji = personList[Math.floor(Math.random() * personList.length)];
+            document.getElementById('homeCharacter').textContent = emoji;
+            document.getElementById('homeScreen').classList.add('show');
+        }
+
+        function goToBath() {
+            document.getElementById('homeScreen').classList.remove('show');
+            nextPerson();
+        }
+
+        function stayHome() {
+            // Go inside the house
+            document.getElementById('homeScreen').classList.remove('show');
+
+            const personList = selectedGender === 'woman' ? women : men;
+            const emoji = personList[Math.floor(Math.random() * personList.length)];
+            document.getElementById('restingCharacter').textContent = emoji;
+
+            document.getElementById('insideHomeScreen').classList.add('show');
+
+            score += 5;
+            updateUI();
+        }
+
+        function exitHome() {
+            document.getElementById('insideHomeScreen').classList.remove('show');
+            nextPerson();
         }
 
         function showResult(correct) {

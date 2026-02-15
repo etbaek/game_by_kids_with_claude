@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Animal Photo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(180deg, #87CEEB 0%, #98FB98 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .nav-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 25px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .game-header {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 15px;
+            color: #333;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .game-area {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            margin-top: 70px;
+            overflow: hidden;
+        }
+
+        .path {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(180deg, #87CEEB 0%, #90EE90 60%, #8B4513 85%, #654321 100%);
+        }
+
+        .trees {
+            position: absolute;
+            bottom: 15%;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .tree {
+            font-size: 50px;
+        }
+
+        .character {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 60px;
+            z-index: 10;
+        }
+
+        .animal {
+            position: absolute;
+            font-size: 50px;
+            transition: all 0.3s;
+            z-index: 5;
+        }
+
+        .animal.appear {
+            animation: animalAppear 0.5s ease-out;
+        }
+
+        @keyframes animalAppear {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .animal.photographed {
+            animation: flash 0.5s forwards;
+        }
+
+        @keyframes flash {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(3); }
+            100% { filter: brightness(1); transform: scale(0); opacity: 0; }
+        }
+
+        .animal.missed {
+            animation: runAway 0.5s forwards;
+        }
+
+        @keyframes runAway {
+            to { transform: translateX(200px); opacity: 0; }
+        }
+
+        .camera-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #333, #555);
+            border: 6px solid #222;
+            border-radius: 50%;
+            font-size: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.1s;
+        }
+
+        .camera-btn:active {
+            transform: translateX(-50%) scale(0.9);
+        }
+
+        .camera-btn.flash {
+            animation: cameraFlash 0.3s;
+        }
+
+        @keyframes cameraFlash {
+            0%, 100% { background: linear-gradient(135deg, #333, #555); }
+            50% { background: linear-gradient(135deg, #fff, #ddd); }
+        }
+
+        .flash-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .flash-effect.show {
+            animation: screenFlash 0.3s;
+        }
+
+        @keyframes screenFlash {
+            0% { opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; }
+        }
+
+        .score-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 100;
+        }
+
+        .score-popup.show {
+            animation: scoreUp 1s forwards;
+        }
+
+        .score-popup.good {
+            color: #22c55e;
+        }
+
+        .score-popup.miss {
+            color: #ef4444;
+        }
+
+        @keyframes scoreUp {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+        }
+
+        .photo-frame {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: white;
+            border: 8px solid #333;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            z-index: 60;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .photo-frame.show {
+            display: flex;
+            animation: photoShow 1.5s forwards;
+        }
+
+        @keyframes photoShow {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); }
+            30% { transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+            50% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        }
+
+        .timer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            background: #ef4444;
+            transition: width 0.1s linear;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .title {
+            font-size: 42px;
+            color: #166534;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #15803d;
+            margin-bottom: 30px;
+        }
+
+        .preview {
+            font-size: 60px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            padding: 15px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .instructions {
+            color: #166534;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .game-over-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .game-over-screen.show {
+            display: flex;
+        }
+
+        .game-over-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            color: #22c55e;
+            margin-bottom: 15px;
+        }
+
+        .game-over-score {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .game-over-photos {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .album {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+            max-width: 300px;
+        }
+
+        .album-photo {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border: 3px solid #333;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="nav-btn">🏠 홈</a>
+
+    <div class="game-header">
+        <div class="stat-box">📷 <span id="photos">0</span>장</div>
+        <div class="stat-box">⭐ <span id="score">0</span>점</div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+        <div class="path"></div>
+        <div class="trees">
+            <div class="tree">🌲</div>
+            <div class="tree">🌳</div>
+            <div class="tree">🌲</div>
+            <div class="tree">🌳</div>
+        </div>
+        <div class="character" id="character">🧒</div>
+    </div>
+
+    <div class="camera-btn" id="cameraBtn" onclick="takePhoto()">📷</div>
+
+    <div class="flash-effect" id="flashEffect"></div>
+    <div class="score-popup" id="scorePopup"></div>
+    <div class="photo-frame" id="photoFrame"></div>
+
+    <div class="start-screen" id="startScreen">
+        <div class="title">📷 동물 사진</div>
+        <div class="subtitle">야생 동물을 찍어요!</div>
+        <div class="preview">🦊🐰🦌📸</div>
+        <button class="start-btn" onclick="startGame()">시작!</button>
+        <div class="instructions">
+            동물이 나타나면 빨리 📷 버튼을 눌러요!<br>
+            사진을 찍으면 점수가 올라가요!<br>
+            동물이 도망가기 전에 찍어야 해요!
+        </div>
+    </div>
+
+    <div class="game-over-screen" id="gameOverScreen">
+        <div class="game-over-icon">📸</div>
+        <div class="game-over-title">사진 촬영 완료!</div>
+        <div class="game-over-score">총점: <span id="finalScore">0</span>점</div>
+        <div class="game-over-photos">찍은 사진: <span id="finalPhotos">0</span>장</div>
+        <div class="album" id="album"></div>
+        <button class="restart-btn" onclick="restartGame()">다시 하기</button>
+    </div>
+
+    <script>
+        const animals = [
+            { emoji: '🦊', name: '여우', points: 30 },
+            { emoji: '🐰', name: '토끼', points: 20 },
+            { emoji: '🦌', name: '사슴', points: 40 },
+            { emoji: '🐿️', name: '다람쥐', points: 25 },
+            { emoji: '🦔', name: '고슴도치', points: 35 },
+            { emoji: '🐦', name: '새', points: 15 },
+            { emoji: '🦋', name: '나비', points: 10 },
+            { emoji: '🐸', name: '개구리', points: 20 },
+            { emoji: '🦉', name: '부엉이', points: 50 },
+            { emoji: '🐻', name: '곰', points: 60 },
+            { emoji: '🦝', name: '너구리', points: 35 },
+            { emoji: '🐢', name: '거북이', points: 30 }
+        ];
+
+        let score = 0;
+        let photos = 0;
+        let currentAnimal = null;
+        let animalTimer = null;
+        let spawnTimer = null;
+        let gameRunning = false;
+        let totalAnimals = 0;
+        let maxAnimals = 15;
+        let photoAlbum = [];
+
+        const gameArea = document.getElementById('gameArea');
+
+        function spawnAnimal() {
+            if (!gameRunning || totalAnimals >= maxAnimals) {
+                if (totalAnimals >= maxAnimals) {
+                    endGame();
+                }
+                return;
+            }
+
+            // Remove existing animal
+            const existing = document.querySelector('.animal');
+            if (existing) existing.remove();
+
+            // Pick random animal
+            const animalData = animals[Math.floor(Math.random() * animals.length)];
+            currentAnimal = animalData;
+
+            // Create animal element
+            const animal = document.createElement('div');
+            animal.className = 'animal appear';
+            animal.textContent = animalData.emoji;
+
+            // Random position
+            const left = 10 + Math.random() * 70;
+            const bottom = 25 + Math.random() * 40;
+            animal.style.left = left + '%';
+            animal.style.bottom = bottom + '%';
+
+            gameArea.appendChild(animal);
+            totalAnimals++;
+
+            // Animal will run away after some time
+            const stayTime = 2000 + Math.random() * 1500; // 2-3.5 seconds
+            animalTimer = setTimeout(() => {
+                if (currentAnimal && gameRunning) {
+                    animal.classList.add('missed');
+                    showPopup('도망갔어요!', 'miss');
+                    currentAnimal = null;
+                    setTimeout(() => animal.remove(), 500);
+                    scheduleNextAnimal();
+                }
+            }, stayTime);
+        }
+
+        function scheduleNextAnimal() {
+            if (!gameRunning) return;
+            const delay = 1000 + Math.random() * 1500;
+            spawnTimer = setTimeout(spawnAnimal, delay);
+        }
+
+        function takePhoto() {
+            if (!gameRunning) return;
+
+            // Flash effect
+            const flash = document.getElementById('flashEffect');
+            flash.classList.remove('show');
+            void flash.offsetWidth;
+            flash.classList.add('show');
+
+            // Camera button flash
+            const btn = document.getElementById('cameraBtn');
+            btn.classList.remove('flash');
+            void btn.offsetWidth;
+            btn.classList.add('flash');
+
+            if (currentAnimal) {
+                // Success! Took photo
+                const animal = document.querySelector('.animal');
+                if (animal) {
+                    animal.classList.add('photographed');
+                    clearTimeout(animalTimer);
+
+                    // Show photo frame
+                    const frame = document.getElementById('photoFrame');
+                    frame.textContent = currentAnimal.emoji;
+                    frame.classList.remove('show');
+                    void frame.offsetWidth;
+                    frame.classList.add('show');
+
+                    // Add to album
+                    photoAlbum.push(currentAnimal.emoji);
+
+                    // Score
+                    const points = currentAnimal.points;
+                    score += points;
+                    photos++;
+                    updateUI();
+
+                    showPopup(`+${points}점!`, 'good');
+
+                    setTimeout(() => animal.remove(), 500);
+                    currentAnimal = null;
+                    scheduleNextAnimal();
+                }
+            } else {
+                // No animal, wasted shot
+                showPopup('동물이 없어요!', 'miss');
+            }
+        }
+
+        function showPopup(text, type) {
+            const popup = document.getElementById('scorePopup');
+            popup.textContent = text;
+            popup.className = 'score-popup show ' + type;
+            setTimeout(() => popup.classList.remove('show'), 1000);
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('photos').textContent = photos;
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearTimeout(animalTimer);
+            clearTimeout(spawnTimer);
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalPhotos').textContent = photos;
+
+            // Show album
+            const album = document.getElementById('album');
+            album.innerHTML = '';
+            photoAlbum.forEach(emoji => {
+                const photo = document.createElement('div');
+                photo.className = 'album-photo';
+                photo.textContent = emoji;
+                album.appendChild(photo);
+            });
+
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hide');
+            initGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            initGame();
+        }
+
+        function initGame() {
+            score = 0;
+            photos = 0;
+            totalAnimals = 0;
+            currentAnimal = null;
+            photoAlbum = [];
+            gameRunning = true;
+
+            // Remove any existing animals
+            document.querySelectorAll('.animal').forEach(a => a.remove());
+
+            updateUI();
+            spawnAnimal();
+        }
+    </script>
+</body>
+</html>

@@ -657,6 +657,12 @@
             border-radius: 20px;
             font-size: 14px;
             z-index: 100;
+            transition: opacity 0.3s;
+        }
+
+        .room-tip.hide {
+            opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -731,7 +737,7 @@
             <div class="home-character-move" id="homeCharMove">👩</div>
         </div>
         <div class="room-score">⭐ <span id="roomScore">0</span>점</div>
-        <div class="room-tip">냉장고🧊를 터치해서 음식을 꺼내고, 음식을 터치해서 먹어요!</div>
+        <div class="room-tip" id="roomTip">냉장고🧊를 터치해서 음식을 꺼내고, 음식을 터치해서 먹어요!</div>
         <div class="eat-message" id="eatMessage">맛있다! +10점</div>
         <button class="room-exit-btn" onclick="exitHome()">🚪 나가기</button>
     </div>
@@ -885,6 +891,9 @@
             roomScore = 0;
             document.getElementById('roomScore').textContent = roomScore;
 
+            // Show tip
+            document.getElementById('roomTip').classList.remove('hide');
+
             document.getElementById('insideHomeScreen').classList.add('show');
             insideHome = true;
         }
@@ -947,6 +956,9 @@
             score += 10;
             document.getElementById('roomScore').textContent = roomScore;
             updateUI();
+
+            // Hide tip after first food eaten
+            document.getElementById('roomTip').classList.add('hide');
 
             // Show eat message
             const msg = document.getElementById('eatMessage');
